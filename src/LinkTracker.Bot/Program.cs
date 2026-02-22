@@ -1,8 +1,34 @@
+using LinkTracker.Bot.Configs;
+using LinkTracker.Bot.Repository;
+using LinkTracker.Bot.Services;
+using LinkTracker.Bot.Services.Dispatchers;
+using LinkTracker.Bot.Services.TelegramBot;
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Add options for telegram bot token
+builder.Services.AddOptions<BotSettings>()
+    .Bind(builder.Configuration.GetSection("BotSettings"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+// Add telegram client
+builder.Services.AddSingleton<ITelegramBot, TelegramBotService>(provider =>
+{
+    return new TelegramBotService(provider.GetRequiredService<IOptions<BotSettings>>().Value, provider.GetRequiredService<ILogger<TelegramBotService>>());
+});
+builder.Services.AddHostedService<TelegramBotPollingService>();
+
+// Add in-memory repository
+builder.Services.AddSingleton<IUsersRepository, DefaultRepository>();
+
+// Add message dispatcher
+builder.Services.AddSingleton<MessageDispatcher>();
 
 var app = builder.Build();
 
@@ -13,6 +39,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Add DispatcherFactories
+app.Services.GetRequiredService<MessageDispatcher>().RegisterCommand("/start", new StartFactory());
+app.Services.GetRequiredService<MessageDispatcher>().RegisterCommand("/help", new HelpFactory());
+_ = app.Services.GetRequiredService<MessageDispatcher>().SendCommandListAsync();
 
 var summaries = new[]
 {
