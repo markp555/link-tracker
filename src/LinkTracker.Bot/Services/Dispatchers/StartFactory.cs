@@ -8,7 +8,7 @@ public class StartFactory : ICommandDispatcherFactory
     {
         return new StaticTextDispatcher()
         {
-            Text = "Welocome to bot!"
+            Text = "Welcome to bot!"
         };
     }
 }
