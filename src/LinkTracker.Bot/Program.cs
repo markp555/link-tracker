@@ -29,6 +29,7 @@ builder.Services.AddSingleton<IUsersRepository, DefaultRepository>();
 
 // Add message dispatcher
 builder.Services.AddSingleton<MessageDispatcher>();
+builder.Services.AddHostedService<CommandRegistrationService>();
 
 var app = builder.Build();
 
@@ -39,11 +40,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// Add DispatcherFactories
-app.Services.GetRequiredService<MessageDispatcher>().RegisterCommand("/start", new StartFactory());
-app.Services.GetRequiredService<MessageDispatcher>().RegisterCommand("/help", new HelpFactory());
-_ = app.Services.GetRequiredService<MessageDispatcher>().SendCommandListAsync();
 
 var summaries = new[]
 {
