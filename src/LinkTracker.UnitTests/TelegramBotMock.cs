@@ -22,7 +22,7 @@ internal class TelegramBotMock : ITelegramBot
     {
         return OnOutgoingMessage?.InvokeAsync(this, message) ?? Task.CompletedTask;
     }
-    
+
     /// <summary>
     /// Sends message as it ws sent by user
     /// </summary>
