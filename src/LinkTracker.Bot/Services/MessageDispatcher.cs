@@ -36,18 +36,18 @@ public class MessageDispatcher
         ICommandDispatcher? currentDispatcher = (await _repository.LoadUserState(message.From)) as ICommandDispatcher;
         if (_commands.TryGetValue(message.Content, out ICommandDispatcherFactory? factory))
         {
-            _logger.LogInformation("Processed command \"{MessageContent}\"", message.Content);
+            _logger.LogInformation("Processed command \"{@MessageContent}\"", message.Content);
             await (currentDispatcher?.Cancel() ?? Task.CompletedTask);
             await _repository.SaveUserState(message.From, currentDispatcher = factory.CreateCommandDispatcher(this, message));
         }
         bool ok = await TryProcessMessage(message, currentDispatcher);
         if (!ok)
         {
-            _logger.LogInformation("Current dispatcher for user {UserId} failed to process message: \"{MessageContent}\"", message.From, message.Content);
+            _logger.LogInformation("Current dispatcher for user {UserId} failed to process message: \"{@MessageContent}\"", message.From, message.Content);
             ok = await TryProcessMessage(message, DefaultDispatcher);
             if (!ok)
             {
-                _logger.LogInformation("Default dispatcher failed to process message: \"{MessageContent}\"", message.Content);
+                _logger.LogInformation("Default dispatcher failed to process message: \"{@MessageContent}\"", message.Content);
                 await Bot.SendMessageAsync(new OutgoingMessage(message.From, $"Sorry, I can't process your message: \"{message.Content}\"\nIf you think this is an error, contact administarators of this bot"));
             }
         }

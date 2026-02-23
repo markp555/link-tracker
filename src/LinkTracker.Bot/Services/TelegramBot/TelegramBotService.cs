@@ -14,7 +14,7 @@ public class TelegramBotService : ITelegramBot
 
     private Task HandleMessageAsync(Message msg)
     {
-        _logger.LogDebug("Incoming message: @{MessageContent} from user {UserName} (id {UserId})", msg.Text, msg.From?.Username, msg.From?.Id);
+        _logger.LogDebug("Incoming message: \"{@MessageContent}\" from user {UserName} (id {UserId}) {@FullMessageContent}", msg.Text, msg.From?.Username, msg.From?.Id, msg);
         if (msg.Chat.Type != ChatType.Private)
         {
             _logger.LogDebug("Message not from private chat, skipping");
@@ -36,7 +36,7 @@ public class TelegramBotService : ITelegramBot
 
     public Task SendMessageAsync(OutgoingMessage message)
     {
-        _logger.LogDebug("Sending message @{MessageContent}", message);
+        _logger.LogDebug("Sending message {@MessageContent}", message);
         return _client.SendMessage(message.To, message.Content);
     }
 
