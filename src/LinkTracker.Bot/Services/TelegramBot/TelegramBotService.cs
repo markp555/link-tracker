@@ -2,6 +2,7 @@ using LinkTracker.Bot.Configs;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
+using Microsoft.Extensions.Options;
 
 namespace LinkTracker.Bot.Services.TelegramBot;
 
@@ -23,9 +24,9 @@ public class TelegramBotService : ITelegramBot
         return OnIncomingMessage?.InvokeAsync(this, new IncomingMessage(msg.From?.Id ?? -1, msg.Text ?? "")) ?? Task.CompletedTask;
     }
 
-    public TelegramBotService(BotSettings settings, ILogger<TelegramBotService> logger)
+    public TelegramBotService(IOptions<BotSettings> settings, ILogger<TelegramBotService> logger)
     {
-        _client = new(settings.BotToken);
+        _client = new(settings.Value.BotToken);
         _logger = logger;
     }
 

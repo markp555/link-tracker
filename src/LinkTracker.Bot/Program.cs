@@ -18,10 +18,7 @@ builder.Services.AddOptions<BotSettings>()
     .ValidateOnStart();
 
 // Add telegram client
-builder.Services.AddSingleton<ITelegramBot, TelegramBotService>(provider =>
-{
-    return new TelegramBotService(provider.GetRequiredService<IOptions<BotSettings>>().Value, provider.GetRequiredService<ILogger<TelegramBotService>>());
-});
+builder.Services.AddSingleton<ITelegramBot, TelegramBotService>();
 builder.Services.AddHostedService<TelegramBotPollingService>();
 
 // Add in-memory repository
