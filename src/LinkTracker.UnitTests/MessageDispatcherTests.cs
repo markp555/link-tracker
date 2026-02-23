@@ -20,8 +20,8 @@ public class MessageDispatcherTests
     {
         repository = new DefaultRepository();
         telegramBot = Substitute.For<ITelegramBot>();
-        telegramBot.RegisterCommands(null!).ReturnsForAnyArgs(Task.CompletedTask);
-        telegramBot.SendMessageAsync(null!).ReturnsForAnyArgs(Task.CompletedTask);
+        telegramBot.RegisterCommands(Arg.Any<IEnumerable<BotCommand>>()).Returns(Task.CompletedTask);
+        telegramBot.SendMessageAsync(Arg.Any<OutgoingMessage>()).Returns(Task.CompletedTask);
         factory1 = Substitute.For<ICommandDispatcherFactory>();
         factory2 = Substitute.For<ICommandDispatcherFactory>();
         commandDispatcher1 = Substitute.For<ICommandDispatcher>();
@@ -35,7 +35,7 @@ public class MessageDispatcherTests
     public void Dispatch_OneFactory_Test()
     {
         factory1.ClearReceivedCalls();
-        factory1.CreateCommandDispatcher(null!, null!).ReturnsForAnyArgs(commandDispatcher1);
+        factory1.CreateCommandDispatcher(dispatcher, Arg.Any<IncomingMessage>()).Returns(commandDispatcher1);
         commandDispatcher1.ClearReceivedCalls();
         IncomingMessage msg = new(1, "hi");
         commandDispatcher1.ProcessMessage(telegramBot, msg, repository).Returns(Task.FromResult(true));
@@ -50,7 +50,7 @@ public class MessageDispatcherTests
     public void Dispatch_OneFactory_MultipleMessages_Test()
     {
         factory1.ClearReceivedCalls();
-        factory1.CreateCommandDispatcher(null!, null!).ReturnsForAnyArgs(commandDispatcher1);
+        factory1.CreateCommandDispatcher(dispatcher, Arg.Any<IncomingMessage>()).Returns(commandDispatcher1);
         commandDispatcher1.ClearReceivedCalls();
         IncomingMessage msg = new(1, "hi"), msg2 = new(1, "lol"), msg3 = new(2, "hi");
         commandDispatcher1.ProcessMessage(telegramBot, msg, repository).Returns(Task.FromResult(true));
@@ -72,9 +72,9 @@ public class MessageDispatcherTests
     public void Dispatch_ManyFactories_Test()
     {
         factory1.ClearReceivedCalls();
-        factory1.CreateCommandDispatcher(null!, null!).ReturnsForAnyArgs(commandDispatcher1);
+        factory1.CreateCommandDispatcher(dispatcher, Arg.Any<IncomingMessage>()).Returns(commandDispatcher1);
         factory2.ClearReceivedCalls();
-        factory2.CreateCommandDispatcher(null!, null!).ReturnsForAnyArgs(commandDispatcher2);
+        factory2.CreateCommandDispatcher(dispatcher, Arg.Any<IncomingMessage>()).Returns(commandDispatcher2);
         commandDispatcher1.ClearReceivedCalls();
         commandDispatcher2.ClearReceivedCalls();
         IncomingMessage msg = new(1, "hi"), msg2 = new(1, "lol"), msg3 = new(1, "oh");
