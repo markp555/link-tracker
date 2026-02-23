@@ -12,16 +12,17 @@ public class MessageDispatcherTests
     private ICommandDispatcher commandDispatcher2;
     private ICommandDispatcherFactory factory1;
     private ICommandDispatcherFactory factory2;
-    private ITelegramBot telegramBot;
+    private TelegramBotMock telegramBot;
     private DefaultRepository repository;
 
     [SetUp]
     public void Setup()
     {
         repository = new DefaultRepository();
-        telegramBot = Substitute.For<ITelegramBot>();
-        telegramBot.RegisterCommands(Arg.Any<IEnumerable<BotCommand>>()).Returns(Task.CompletedTask);
-        telegramBot.SendMessageAsync(Arg.Any<OutgoingMessage>()).Returns(Task.CompletedTask);
+        // telegramBot = Substitute.For<ITelegramBot>();
+        // telegramBot.RegisterCommands(Arg.Any<IEnumerable<BotCommand>>()).Returns(Task.CompletedTask);
+        // telegramBot.SendMessageAsync(Arg.Any<OutgoingMessage>()).Returns(Task.CompletedTask);
+        telegramBot = new TelegramBotMock();
         factory1 = Substitute.For<ICommandDispatcherFactory>();
         factory2 = Substitute.For<ICommandDispatcherFactory>();
         commandDispatcher1 = Substitute.For<ICommandDispatcher>();
@@ -32,7 +33,7 @@ public class MessageDispatcherTests
     }
 
     [Test]
-    public void Dispatch_OneFactory_Test()
+    public async Task Dispatch_OneFactory_Test()
     {
         factory1.ClearReceivedCalls();
         factory1.CreateCommandDispatcher(dispatcher, Arg.Any<IncomingMessage>()).Returns(commandDispatcher1);
@@ -40,14 +41,15 @@ public class MessageDispatcherTests
         IncomingMessage msg = new(1, "hi");
         commandDispatcher1.ProcessMessage(telegramBot, msg, repository).Returns(Task.FromResult(true));
         dispatcher.RegisterCommand("hi", factory1);
-        telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg);
-        commandDispatcher1.Received().ProcessMessage(telegramBot, msg, repository);
+        // telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg);
+        await telegramBot.SendUserMessage(msg);
+        _ = commandDispatcher1.Received().ProcessMessage(telegramBot, msg, repository);
         factory1.Received().CreateCommandDispatcher(dispatcher, msg);
         dispatcher.UnregisterCommand("hi");
     }
 
     [Test]
-    public void Dispatch_OneFactory_MultipleMessages_Test()
+    public async Task Dispatch_OneFactory_MultipleMessages_Test()
     {
         factory1.ClearReceivedCalls();
         factory1.CreateCommandDispatcher(dispatcher, Arg.Any<IncomingMessage>()).Returns(commandDispatcher1);
@@ -57,19 +59,22 @@ public class MessageDispatcherTests
         commandDispatcher1.ProcessMessage(telegramBot, msg2, repository).Returns(Task.FromResult(true));
         commandDispatcher1.ProcessMessage(telegramBot, msg3, repository).Returns(Task.FromResult(true));
         dispatcher.RegisterCommand("hi", factory1);
-        telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg);
-        telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg2);
-        telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg3);
-        commandDispatcher1.Received().ProcessMessage(telegramBot, msg, repository);
-        commandDispatcher1.Received().ProcessMessage(telegramBot, msg2, repository);
-        commandDispatcher1.Received().ProcessMessage(telegramBot, msg3, repository);
+        // telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg);
+        // telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg2);
+        // telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg3);
+        await telegramBot.SendUserMessage(msg);
+        await telegramBot.SendUserMessage(msg2);
+        await telegramBot.SendUserMessage(msg3);
+        _ = commandDispatcher1.Received().ProcessMessage(telegramBot, msg, repository);
+        _ = commandDispatcher1.Received().ProcessMessage(telegramBot, msg2, repository);
+        _ = commandDispatcher1.Received().ProcessMessage(telegramBot, msg3, repository);
         factory1.Received().CreateCommandDispatcher(dispatcher, msg);
         factory1.Received().CreateCommandDispatcher(dispatcher, msg3);
         dispatcher.UnregisterCommand("hi");
     }
 
     [Test]
-    public void Dispatch_ManyFactories_Test()
+    public async Task Dispatch_ManyFactories_Test()
     {
         factory1.ClearReceivedCalls();
         factory1.CreateCommandDispatcher(dispatcher, Arg.Any<IncomingMessage>()).Returns(commandDispatcher1);
@@ -83,12 +88,15 @@ public class MessageDispatcherTests
         commandDispatcher2.ProcessMessage(telegramBot, msg3, repository).Returns(Task.FromResult(true));
         dispatcher.RegisterCommand("hi", factory1);
         dispatcher.RegisterCommand("lol", factory2);
-        telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg);
-        commandDispatcher1.Received().ProcessMessage(telegramBot, msg, repository);
-        telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg2);
-        commandDispatcher2.Received().ProcessMessage(telegramBot, msg2, repository);
-        telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg3);
-        commandDispatcher2.Received().ProcessMessage(telegramBot, msg3, repository);
+        // telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg);
+        await telegramBot.SendUserMessage(msg);
+        _ = commandDispatcher1.Received().ProcessMessage(telegramBot, msg, repository);
+        // telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg2);
+        await telegramBot.SendUserMessage(msg2);
+        _ = commandDispatcher2.Received().ProcessMessage(telegramBot, msg2, repository);
+        // telegramBot.OnIncomingMessage += Raise.Event<AsyncEventHandler<IncomingMessage>>(telegramBot, msg3);
+        await telegramBot.SendUserMessage(msg3);
+        _ = commandDispatcher2.Received().ProcessMessage(telegramBot, msg3, repository);
         factory1.Received().CreateCommandDispatcher(dispatcher, msg);
         factory2.Received().CreateCommandDispatcher(dispatcher, msg2);
         dispatcher.UnregisterCommand("hi");
