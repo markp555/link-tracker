@@ -3,19 +3,26 @@ using LinkTracker.Bot.Services;
 
 namespace LinkTracker.UnitTests;
 
-internal class TelegramBotMock : ITelegramBot
+public class TelegramBotMock : ITelegramBot
 {
     public event AsyncEventHandler<IncomingMessage>? OnIncomingMessage;
     public event AsyncEventHandler<OutgoingMessage>? OnOutgoingMessage;
 
-    public Task MessageLoop(CancellationToken cancellationToken)
+    public async Task MessageLoop(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        while (true)
+        {
+            // fake event loop
+            await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+        }
     }
+
+    public List<BotCommand> BotCommands { get; set; } = [];
 
     public Task RegisterCommands(IEnumerable<BotCommand> commands)
     {
-        throw new NotImplementedException();
+        BotCommands = commands.ToList();
+        return Task.CompletedTask;
     }
 
     public Task SendMessageAsync(OutgoingMessage message)
@@ -44,7 +51,7 @@ internal class TelegramBotMock : ITelegramBot
     }
 }
 
-internal class TelegramUserDialog
+public class TelegramUserDialog : IDisposable
 {
     public TelegramBotMock TelegramBot { get; }
     public long UserId { get; }
@@ -58,7 +65,10 @@ internal class TelegramUserDialog
 
     private Task BotMock_OnOutgoingMessage(object sender, OutgoingMessage args)
     {
-        Assert.That(sender, Is.SameAs(TelegramBot));
+        if (sender != TelegramBot)
+        {
+            throw new ArgumentException("Invalid sender", nameof(sender));
+        }
         if (args.To == UserId)
         {
             messages.Enqueue(args.Content);
@@ -67,6 +77,7 @@ internal class TelegramUserDialog
     }
 
     private readonly Queue<string> messages = [];
+    private bool disposedValue;
 
     /// <summary>
     /// Sends message to this dialog from user side
@@ -85,25 +96,34 @@ internal class TelegramUserDialog
     }
 
     /// <summary>
-    /// Closes current dialog. Need to be used for proper cleanup
-    /// </summary>
-    public void Close()
-    {
-        TelegramBot.OnOutgoingMessage -= BotMock_OnOutgoingMessage;
-    }
-
-    /// <summary>
     /// Is there any messages recieved
     /// </summary>
     public bool HasRecievedMessages => messages.Count != 0;
 
-    /// <summary>
-    /// Helper method for tests. Checks that user has recieved this message and it is only one recieved message
-    /// </summary>
-    public void ShouldRecieved(string message)
+    protected virtual void Dispose(bool disposing)
     {
-        Assert.That(HasRecievedMessages, Is.True);
-        Assert.That(RecieveMessage(), Is.EqualTo(message));
-        Assert.That(HasRecievedMessages, Is.False);
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                TelegramBot.OnOutgoingMessage -= BotMock_OnOutgoingMessage;
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    // // TODO: переопределить метод завершения, только если "Dispose(bool disposing)" содержит код для освобождения неуправляемых ресурсов
+    // ~TelegramUserDialog()
+    // {
+    //     // Не изменяйте этот код. Разместите код очистки в методе "Dispose(bool disposing)".
+    //     Dispose(disposing: false);
+    // }
+
+    public void Dispose()
+    {
+        // Не изменяйте этот код. Разместите код очистки в методе "Dispose(bool disposing)".
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
