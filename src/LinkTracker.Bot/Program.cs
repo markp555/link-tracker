@@ -14,8 +14,7 @@ builder.Services.AddOpenApi();
 // Add options for telegram bot token
 builder.Services.AddOptions<BotSettings>()
     .Bind(builder.Configuration.GetSection("BotSettings"))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+    .ValidateDataAnnotations();
 
 // Add telegram client
 builder.Services.AddSingleton<ITelegramBot, TelegramBotService>();
