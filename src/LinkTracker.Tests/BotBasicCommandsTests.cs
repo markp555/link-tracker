@@ -31,7 +31,7 @@ public class BotBasicCommandsTests
     [SetUp]
     public void Setup()
     {
-        
+
     }
 
     /// <summary>
