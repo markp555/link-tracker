@@ -1,10 +1,12 @@
-﻿using LinkTracker.Bot.Services;
+﻿using LinkTracker.Bot.Configs;
+using LinkTracker.Bot.Services;
 using LinkTracker.UnitTests;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Telegram.Bot;
 
@@ -19,6 +21,7 @@ internal class TelegramBotTestFactory : WebApplicationFactory<Bot.TestEntryPoint
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<ITelegramBot>();
+            services.RemoveAll<IOptions<BotSettings>>();
 
             services.AddSingleton<ITelegramBot>(_ => TelegramClientMock);
         });
