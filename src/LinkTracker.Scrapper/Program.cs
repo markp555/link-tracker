@@ -30,6 +30,7 @@ builder.Services.AddHttpClient<IBotApi, BotApiClient>()
     {
         // configure client here
         c.Timeout = TimeSpan.FromSeconds(3);
+        c.BaseAddress = new Uri("http://localhost:5205/");
     })
     .AddPolicyHandler(Policy<HttpResponseMessage>
         .HandleResult(msg => msg.StatusCode == HttpStatusCode.InternalServerError)

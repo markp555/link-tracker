@@ -9,7 +9,6 @@ public class BotApiClient : IBotApi
     public BotApiClient(HttpClient client)
     {
         _client = client;
-        _client.BaseAddress = new Uri("http://localhost:5205/");
     }
 
     public async Task SendUpdateAsync(LinkUpdateDto dto, CancellationToken cancellationToken)

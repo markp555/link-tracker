@@ -4,9 +4,13 @@ using LinkTracker.Bot.Services;
 using LinkTracker.Bot.Services.Dispatchers;
 using LinkTracker.Bot.Services.TelegramBot;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Http;
 using Telegram.Bot;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using LinkTracker.Bot;
+using Polly;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +46,17 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
+
+// Add scrapper http client
+builder.Services.AddHttpClient<ScrapperClient>().ConfigureHttpClient(c =>
+    {
+        // configure client here
+        c.BaseAddress = new Uri("http://localhost:5048/");
+        c.Timeout = TimeSpan.FromSeconds(3);
+    })
+    .AddPolicyHandler(Policy<HttpResponseMessage>
+        .HandleResult(msg => msg.StatusCode == HttpStatusCode.ServiceUnavailable)
+        .WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
 
 var app = builder.Build();
 
