@@ -27,27 +27,48 @@ public class ScrapperLinksJob(
         foreach (var task in tasks)
         {
             LinkTrackerData link = task.Item1;
-            ScrapperResult result = await task.Item2;
-            _logger.LogDebug("Scrapped link {link}, last update at {lastUpdateDate} ({updateDescription})", link.ResourceURL, result.LastUpdateDate, result.LastUpdateDescription);
-            if (result.LastUpdateDate > link.LastUpdate)
+            try
             {
-                _logger.LogInformation("Update found on link {link}: \"{description}\", sending information to bot", link.ResourceURL, result.LastUpdateDescription);
-
-                async Task subjob(CancellationToken cancellationToken)
+                ScrapperResult result = await task.Item2;
+                _logger.LogDebug("Scrapped link {link}, last update at {lastUpdateDate} ({updateDescription})", link.ResourceURL, result.LastUpdateDate, result.LastUpdateDescription);
+                if (result.LastUpdateDate > link.LastUpdate)
                 {
-                    // If sending update fail, then update will not be written to database and attempt to resend it will occur
+                    _logger.LogInformation("Update found on link {link}: \"{description}\", sending information to bot", link.ResourceURL, result.LastUpdateDescription);
+
+                    async Task subjob(CancellationToken cancellationToken)
+                    {
+                        // If sending update fail, then update will not be written to database and attempt to resend it will occur
+                        await botApi.SendUpdateAsync(new Dto.LinkUpdateDto()
+                        {
+                            Id = await repository.GetNextFreeId(),
+                            Description = result.LastUpdateDescription,
+                            TgChatIds = [link.UserId],
+                            Url = link.ResourceURL
+                        }, cancellationToken);
+                        link.LastUpdate = result.LastUpdateDate;
+                        await repository.UpdateTrackingLink(link);
+                    }
+
+                    sendUpdateTasks.Add(subjob(context.CancellationToken));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fatal error scrapping url: {Url}", link.ResourceURL);
+
+                async Task NotifyUserSubJob(CancellationToken cancellationToken)
+                {
+                    long id = await repository.GetNextFreeId();
                     await botApi.SendUpdateAsync(new Dto.LinkUpdateDto()
                     {
-                        Id = await repository.GetNextFreeId(),
-                        Description = result.LastUpdateDescription,
+                        Id = id,
                         TgChatIds = [link.UserId],
-                        Url = link.ResourceURL
+                        Url = link.ResourceURL,
+                        Description = $"Failed to scrap url: {link.ResourceURL}"
                     }, cancellationToken);
-                    link.LastUpdate = result.LastUpdateDate;
-                    await repository.UpdateTrackingLink(link);
                 }
 
-                sendUpdateTasks.Add(subjob(context.CancellationToken));
+                sendUpdateTasks.Add(NotifyUserSubJob(context.CancellationToken));
             }
         }
         _logger.LogInformation("Scrapping finished, sending updates");
