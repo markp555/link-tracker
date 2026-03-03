@@ -38,6 +38,8 @@ builder.Services.AddSingleton<IUsersRepository, DefaultRepository>();
 
 // Add message dispatcher
 builder.Services.AddSingleton<MessageDispatcher>();
+builder.Services.AddTransient<CancelDispatcher>();
+builder.Services.AddTransient<TrackDispatcher>();
 builder.Services.AddHostedService<CommandRegistrationService>();
 
 // Add controllers
@@ -48,11 +50,11 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 
 // Add scrapper http client
-builder.Services.AddHttpClient<ScrapperClient>().ConfigureHttpClient(c =>
+builder.Services.AddHttpClient<IScrapperClient, ScrapperClient>().ConfigureHttpClient(c =>
     {
         // configure client here
         c.BaseAddress = new Uri("http://localhost:5048/");
-        c.Timeout = TimeSpan.FromSeconds(3);
+        c.Timeout = TimeSpan.FromSeconds(0.5);
     })
     .AddPolicyHandler(Policy<HttpResponseMessage>
         .HandleResult(msg => msg.StatusCode == HttpStatusCode.ServiceUnavailable)

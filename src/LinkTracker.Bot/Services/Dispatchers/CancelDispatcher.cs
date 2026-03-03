@@ -11,6 +11,7 @@ public class CancelDispatcher : ICommandDispatcher
 
     public async Task<bool> ProcessMessage(ITelegramBot bot, IncomingMessage message, IUsersRepository repository)
     {
+        await bot.SendMessageAsync(new OutgoingMessage(message.From, "Operation has been canceled"));
         await repository.SaveUserState(message.From, null);
         return true;
     }
