@@ -4,12 +4,9 @@ using LinkTracker.Bot.Services;
 using LinkTracker.Bot.Services.Dispatchers;
 using LinkTracker.Bot.Services.TelegramBot;
 using Microsoft.Extensions.Options;
-<<<<<<< HEAD
 using Telegram.Bot;
-=======
 using System.Text.Json;
 using System.Text.Json.Serialization;
->>>>>>> ca3f7a8 (feat: implemented handling of /updates post in bot)
 
 var builder = WebApplication.CreateBuilder(args);
 
