@@ -21,6 +21,7 @@ internal class TelegramBotTestFactory : WebApplicationFactory<Bot.TestEntryPoint
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<ITelegramBot>();
+            services.RemoveAll<ITelegramBotClient>();
             services.RemoveAll<IOptions<BotSettings>>();
 
             services.AddSingleton<ITelegramBot>(_ => TelegramClientMock);

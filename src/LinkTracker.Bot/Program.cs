@@ -4,6 +4,7 @@ using LinkTracker.Bot.Services;
 using LinkTracker.Bot.Services.Dispatchers;
 using LinkTracker.Bot.Services.TelegramBot;
 using Microsoft.Extensions.Options;
+using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,12 @@ builder.Services.AddOptions<BotSettings>()
     .ValidateDataAnnotations();
 
 // Add telegram client
+builder.Services.AddSingleton<ITelegramBotClient, TelegramBotClient>(factory =>
+{
+    var setting = factory.GetRequiredService<IOptions<BotSettings>>();
+    var token = setting.Value.BotToken;
+    return new(token);
+});
 builder.Services.AddSingleton<ITelegramBot, TelegramBotService>();
 builder.Services.AddHostedService<TelegramBotPollingService>();
 

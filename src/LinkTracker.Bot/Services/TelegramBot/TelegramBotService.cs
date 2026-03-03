@@ -3,14 +3,15 @@ using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using Microsoft.Extensions.Options;
+using Telegram.Bot.Polling;
 
 namespace LinkTracker.Bot.Services.TelegramBot;
 
-public class TelegramBotService : ITelegramBot
+public class TelegramBotService : ITelegramBot, IUpdateHandler
 {
     public event AsyncEventHandler<IncomingMessage>? OnIncomingMessage;
 
-    readonly private TelegramBotClient _client;
+    readonly private ITelegramBotClient _client;
     readonly private ILogger<TelegramBotService> _logger;
 
     private Task HandleMessageAsync(Message msg)
@@ -24,9 +25,9 @@ public class TelegramBotService : ITelegramBot
         return OnIncomingMessage?.InvokeAsync(this, new IncomingMessage(msg.From?.Id ?? -1, msg.Text ?? "")) ?? Task.CompletedTask;
     }
 
-    public TelegramBotService(IOptions<BotSettings> settings, ILogger<TelegramBotService> logger)
+    public TelegramBotService(ITelegramBotClient client, ILogger<TelegramBotService> logger)
     {
-        _client = new(settings.Value.BotToken);
+        _client = client;
         _logger = logger;
     }
 
@@ -41,7 +42,7 @@ public class TelegramBotService : ITelegramBot
         return _client.SendMessage(message.To, message.Content);
     }
 
-    private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
         switch (update.Type)
         {
@@ -50,9 +51,9 @@ public class TelegramBotService : ITelegramBot
                 break;
         }
     }
-    private Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
+    public Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource errorSource, CancellationToken cancellationToken)
     {
-        _logger.LogError(exception, "Polling error occurred");
+        _logger.LogError(exception, "Telegram bot error occurred from {errorSource}", errorSource.ToString());
         return Task.CompletedTask;
     }
 
@@ -60,6 +61,6 @@ public class TelegramBotService : ITelegramBot
     {
         var me = await _client.GetMe(cancellationToken);
         _logger.LogInformation("Bot @{BotUsername} started", me.Username);
-        await _client.ReceiveAsync(HandleUpdateAsync, HandlePollingErrorAsync, null, cancellationToken);
+        await _client.ReceiveAsync(this, null, cancellationToken);
     }
 }
