@@ -12,14 +12,11 @@ public class CommandRegistrationService(MessageDispatcher messageDispatcher, ISe
     {
         _messageDispatcher.RegisterCommand("/start", new StartFactory());
         _messageDispatcher.RegisterCommand("/help", new HelpFactory());
-        _messageDispatcher.RegisterCommand("/track", new TypedFactory<TrackDispatcher>(_provider)
-        {
-            Description = "Start tracking new URL"
-        });
         _messageDispatcher.RegisterCommand("/cancel", new TypedFactory<CancelDispatcher>(_provider)
         {
             Description = "Cancel current operation"
         });
+        DynamicTypedFactory.RegisterAllCommands(_messageDispatcher, _provider);
         await _messageDispatcher.SendCommandListAsync();
     }
 }

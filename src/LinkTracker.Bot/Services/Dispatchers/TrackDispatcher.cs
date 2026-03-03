@@ -3,6 +3,7 @@ using System.Net;
 
 namespace LinkTracker.Bot.Services.Dispatchers;
 
+[BotCommand("/track", "Start tracking new URL")]
 public class TrackDispatcher(IScrapperClient client) : ICommandDispatcher
 {
     private readonly IScrapperClient scrapper = client;

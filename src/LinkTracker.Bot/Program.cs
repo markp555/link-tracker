@@ -40,6 +40,8 @@ builder.Services.AddSingleton<IUsersRepository, DefaultRepository>();
 builder.Services.AddSingleton<MessageDispatcher>();
 builder.Services.AddTransient<CancelDispatcher>();
 builder.Services.AddTransient<TrackDispatcher>();
+builder.Services.AddTransient<UnTrackDispatcher>();
+builder.Services.AddTransient<ListDispatcher>();
 builder.Services.AddHostedService<CommandRegistrationService>();
 
 // Add controllers

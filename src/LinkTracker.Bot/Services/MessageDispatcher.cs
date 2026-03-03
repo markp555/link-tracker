@@ -74,14 +74,14 @@ public class MessageDispatcher
             {
                 _logger.LogError(ex, "Scrapper - Bot connection error");
                 await _repository.SaveUserState(message.From, null);
-                await Bot.SendMessageAsync(new(message.From, FormatError("There was some problems on our side. Please try again or contact administrators of this bot", ex.ToString())));
+                await Bot.SendMessageAsync(new(message.From, FormatError("Sorry, there was an unexpected error processing your message", ex.ToString())));
                 throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during processing message");
                 await _repository.SaveUserState(message.From, null);
-                await Bot.SendMessageAsync(new(message.From, FormatError("Sorry, there was an unexpected error processing your message", ex.Message)));
+                await Bot.SendMessageAsync(new(message.From, FormatError("There was some problems on our side. Please try again or contact administrators of this bot", ex.Message)));
                 throw;
             }
         }
