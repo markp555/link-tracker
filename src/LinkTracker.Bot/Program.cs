@@ -4,7 +4,12 @@ using LinkTracker.Bot.Services;
 using LinkTracker.Bot.Services.Dispatchers;
 using LinkTracker.Bot.Services.TelegramBot;
 using Microsoft.Extensions.Options;
+<<<<<<< HEAD
 using Telegram.Bot;
+=======
+using System.Text.Json;
+using System.Text.Json.Serialization;
+>>>>>>> ca3f7a8 (feat: implemented handling of /updates post in bot)
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +39,13 @@ builder.Services.AddSingleton<IUsersRepository, DefaultRepository>();
 builder.Services.AddSingleton<MessageDispatcher>();
 builder.Services.AddHostedService<CommandRegistrationService>();
 
+// Add controllers
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -43,6 +55,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.MapControllers();
 
 var summaries = new[]
 {

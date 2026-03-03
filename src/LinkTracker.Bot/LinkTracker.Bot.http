@@ -4,3 +4,34 @@ GET {{LinkTracker.Bot_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST {{LinkTracker.Bot_HostAddress}}/updates
+Accept: application/json
+Content-Type: application/json
+
+###
+
+POST {{LinkTracker.Bot_HostAddress}}/updates
+Accept: application/json
+Content-Type: application/json
+
+{
+  "id": 123,
+  "url": "https://github.com/",
+  "tgChatIds": [
+    123, 345, 567
+  ]
+}
+
+###
+
+POST {{LinkTracker.Bot_HostAddress}}/updates
+Accept: application/json
+Content-Type: application/json
+
+{
+  "id": 123,
+  "url": "https://github.com/"
+}
+
+###

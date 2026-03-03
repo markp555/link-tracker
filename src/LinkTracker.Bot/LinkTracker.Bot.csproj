@@ -16,4 +16,8 @@
     <Folder Include="Services\TelegramBot\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\LinkTracker.Dto\LinkTracker.Dto.csproj" />
+  </ItemGroup>
+
 </Project>
