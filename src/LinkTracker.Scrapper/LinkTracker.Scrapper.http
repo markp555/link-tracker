@@ -4,3 +4,41 @@ GET {{LinkTracker.Scrapper_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST {{LinkTracker.Scrapper_HostAddress}}/links
+Tg-Chat-Id: 123
+Content-Type: application/json
+
+{
+  "Link": "https://github.com/markp555/Chess"
+}
+
+###
+
+POST {{LinkTracker.Scrapper_HostAddress}}/links
+Tg-Chat-Id: 123
+Content-Type: application/json
+
+{
+  "Link": "https://stackoverflow.com/questions/29298346/xmpp-sasl-scram-sha1-authentication"
+}
+
+###
+
+POST {{LinkTracker.Scrapper_HostAddress}}/tg-chat/123
+
+###
+
+POST {{LinkTracker.Scrapper_HostAddress}}/tg-chat/-10000
+
+###
+
+POST {{LinkTracker.Scrapper_HostAddress}}/links
+Tg-Chat-Id: 123
+Content-Type: application/json
+
+{
+
+}
+
+###

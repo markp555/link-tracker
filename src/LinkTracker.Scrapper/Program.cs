@@ -1,10 +1,91 @@
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using LinkTracker.Scrapper.Repository;
+using LinkTracker.Scrapper.Services;
+using Polly;
+using System.Net;
+using LinkTracker.Scrapper;
+using Quartz;
+using LinkTracker.Scrapper.Middleware;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddOptions<LinkTracker.Scrapper.Configs.StackOverflow>()
+    .Bind(builder.Configuration.GetSection("StackOverflow"));
+builder.Services.AddOptions<LinkTracker.Scrapper.Configs.GitHub>()
+    .Bind(builder.Configuration.GetSection("Github"));
+
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
+
+builder.Services.AddHttpClient<IBotApi, BotApiClient>()
+    .ConfigureHttpClient(c =>
+    {
+        // configure client here
+        c.Timeout = TimeSpan.FromSeconds(3);
+    })
+    .AddPolicyHandler(Policy<HttpResponseMessage>
+        .HandleResult(msg => msg.StatusCode == HttpStatusCode.InternalServerError)
+        .WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
+
+builder.Services.AddSingleton<IChatsRepository, InMemoryRepository>();
+builder.Services.AddSingleton<IScrapper, CommonScrapper>();
+
+builder.Services.AddScoped<ScrapperLinksJob>();
+
+builder.Services.AddQuartz(q =>
+{
+    JobKey job = new(nameof(ScrapperLinksJob));
+
+    q.AddJob<ScrapperLinksJob>(opts => opts.WithIdentity(job));
+
+    q.AddTrigger(opts => opts
+        .ForJob(job)
+        .WithSimpleSchedule(x => x.WithIntervalInSeconds(10).RepeatForever())
+        .StartNow());
+});
+
+builder.Services.AddQuartzHostedService();
+
+// add stackoverflow scrapper
+builder.Services.AddHttpClient<StackoverflowScrapper>()
+    .ConfigureHttpClient(c =>
+    {
+        // configure client here
+        c.BaseAddress = new Uri("https://api.stackexchange.com/2.3/");
+        c.Timeout = TimeSpan.FromSeconds(3);
+    })
+    .AddPolicyHandler(Policy<HttpResponseMessage>
+        .HandleResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
+        .WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
+// add github scrapper
+builder.Services.AddHttpClient<GithubScrapper>()
+    .ConfigureHttpClient(c =>
+    {
+        // configure client here
+        c.BaseAddress = new Uri("https://api.github.com/");
+        c.Timeout = TimeSpan.FromSeconds(3);
+    })
+    .AddPolicyHandler(Policy<HttpResponseMessage>
+        .HandleResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
+        .WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
+
 var app = builder.Build();
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
+IScrapper scrapper = app.Services.GetRequiredService<IScrapper>();
+if (scrapper is CommonScrapper cs)
+{
+    cs.AddScrapper(app.Services.GetRequiredService<StackoverflowScrapper>());
+    cs.AddScrapper(app.Services.GetRequiredService<GithubScrapper>());
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -13,29 +94,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.MapControllers();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
