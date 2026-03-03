@@ -73,7 +73,7 @@ public class ScrapperController(IChatsRepository repository, ILogger<ScrapperCon
                 ExceptionName = "ChatNotExistError"
             };
 
-            return Conflict(error);
+            return NotFound(error);
         }
 
         _logger.LogInformation("Unregistered chat with id: {chatId}", id);
