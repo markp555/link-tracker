@@ -125,6 +125,7 @@ public class ScrapperController(IChatsRepository repository, ILogger<ScrapperCon
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> AddLink(
         [FromHeader(Name = "Tg-Chat-Id"), Required] long tgChatId, 
         [FromBody, Required] AddLinkRequestDto request
@@ -245,7 +246,7 @@ public class ScrapperController(IChatsRepository repository, ILogger<ScrapperCon
                 ExceptionName = null
             };
 
-            return Conflict(error);
+            return NotFound(error);
         }
 
         await repository.RemoveTrackingLink(data);
