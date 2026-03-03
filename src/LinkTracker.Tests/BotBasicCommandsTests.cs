@@ -42,7 +42,7 @@ public class BotBasicCommandsTests
     [TestCase("/start", ExpectedResult = "Welcome to bot!")]
     [TestCase("/unknown", ExpectedResult = "Sorry, I can't process your message: \"/unknown\"\nIf you think this is an error, contact administarators of this bot")]
     [TestCase("lol", ExpectedResult = "Sorry, I can't process your message: \"lol\"\nIf you think this is an error, contact administarators of this bot")]
-    [TestCase("/help", ExpectedResult = "Avaiable commands:\n/start - Begin communication with bot\n/help - Shows information about avaiable commands\n")]
+    [TestCase("/help", ExpectedResult = "Avaiable commands:\n/start - Begin communication with bot\n/help - Shows information about avaiable commands\n/cancel - Cancel current operation\n/list - Gets all links being tracking\n/track - Start tracking new URL\n/untrack - Stop tracking of URL\n")]
     public async Task<string> TestMessage(string send)
     {
         using var dialog = botMock.StartDialog(123);

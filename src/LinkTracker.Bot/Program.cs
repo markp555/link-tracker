@@ -9,8 +9,6 @@ using Telegram.Bot;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LinkTracker.Bot;
-using Polly;
-using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,11 +54,8 @@ builder.Services.AddHttpClient<IScrapperClient, ScrapperClient>().ConfigureHttpC
     {
         // configure client here
         c.BaseAddress = new Uri("http://localhost:5048/");
-        c.Timeout = TimeSpan.FromSeconds(0.5);
-    })
-    .AddPolicyHandler(Policy<HttpResponseMessage>
-        .HandleResult(msg => msg.StatusCode == HttpStatusCode.ServiceUnavailable)
-        .WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
+        c.Timeout = TimeSpan.FromSeconds(1);
+    });
 
 var app = builder.Build();
 

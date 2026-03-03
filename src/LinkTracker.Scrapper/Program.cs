@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using LinkTracker.Scrapper.Repository;
 using LinkTracker.Scrapper.Services;
-using Polly;
 using System.Net;
 using LinkTracker.Scrapper;
 using Quartz;
@@ -31,10 +30,7 @@ builder.Services.AddHttpClient<IBotApi, BotApiClient>()
         // configure client here
         c.Timeout = TimeSpan.FromSeconds(3);
         c.BaseAddress = new Uri("http://localhost:5205/");
-    })
-    .AddPolicyHandler(Policy<HttpResponseMessage>
-        .HandleResult(msg => msg.StatusCode == HttpStatusCode.InternalServerError)
-        .WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
+    });
 
 builder.Services.AddSingleton<IChatsRepository, InMemoryRepository>();
 builder.Services.AddSingleton<IScrapper, CommonScrapper>();
@@ -62,10 +58,7 @@ builder.Services.AddHttpClient<StackoverflowScrapper>()
         // configure client here
         c.BaseAddress = new Uri("https://api.stackexchange.com/2.3/");
         c.Timeout = TimeSpan.FromSeconds(3);
-    })
-    .AddPolicyHandler(Policy<HttpResponseMessage>
-        .HandleResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-        .WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
+    });
 // add github scrapper
 builder.Services.AddHttpClient<GithubScrapper>()
     .ConfigureHttpClient(c =>
@@ -73,10 +66,7 @@ builder.Services.AddHttpClient<GithubScrapper>()
         // configure client here
         c.BaseAddress = new Uri("https://api.github.com/");
         c.Timeout = TimeSpan.FromSeconds(3);
-    })
-    .AddPolicyHandler(Policy<HttpResponseMessage>
-        .HandleResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-        .WaitAndRetryAsync(2, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
+    });
 
 var app = builder.Build();
 

@@ -1,6 +1,7 @@
 ﻿using LinkTracker.Bot;
 using LinkTracker.Bot.Repository;
 using LinkTracker.Bot.Services;
+using Microsoft.AspNetCore.Hosting;
 using NSubstitute;
 
 namespace LinkTracker.UnitTests;
@@ -26,7 +27,10 @@ public class MessageDispatcherTests
         commandDispatcher2 = Substitute.For<ICommandDispatcher>();
         factory1.Description.Returns("Lol");
         factory2.Description.Returns("Wow");
-        dispatcher = new MessageDispatcher(telegramBot, new Microsoft.Extensions.Logging.Abstractions.NullLogger<MessageDispatcher>(), repository);
+        IWebHostEnvironment env = Substitute.For<IWebHostEnvironment>();
+        env.ApplicationName.Returns("Bot");
+        env.EnvironmentName.Returns("Development");
+        dispatcher = new MessageDispatcher(telegramBot, new Microsoft.Extensions.Logging.Abstractions.NullLogger<MessageDispatcher>(), repository, env);
     }
 
     [Test]
