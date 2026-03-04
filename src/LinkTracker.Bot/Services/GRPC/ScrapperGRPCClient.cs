@@ -58,7 +58,7 @@ public class ScrapperGRPCClient(Bot.Scrapper.ScrapperClient client) : IScrapperC
 
     public async Task RegisterChatAsync(long chatId, CancellationToken ct = default)
     {
-        await _client.UnregisterChatsAsync(new ChatRequest { ChatId = chatId }, cancellationToken: ct);
+        await _client.RegisterChatAsync(new ChatRequest { ChatId = chatId }, cancellationToken: ct);
     }
 
     public async Task<LinkResponseDto> RemoveLinkAsync(long chatId, RemoveLinkRequestDto request, CancellationToken ct = default)
