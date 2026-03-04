@@ -1,4 +1,5 @@
-﻿using LinkTracker.Scrapper;
+﻿using LinkTracker.Bot.Services;
+using LinkTracker.Scrapper;
 using LinkTracker.Scrapper.Models;
 using LinkTracker.Scrapper.Services;
 using LinkTracker.UnitTests;
@@ -56,6 +57,7 @@ public static class TelegramExtesnions
 }
 
 [TestFixture]
+[Parallelizable(ParallelScope.None)]
 public class BlackBoxTests
 {
     private ScrapperMockedTestFactory scrapperApp;
@@ -79,10 +81,10 @@ public class BlackBoxTests
     [OneTimeTearDown]
     public void HostStop()
     {
-        scrapperApp.Dispose();
-        telegramBot.Dispose();
         client1.Dispose();
         client2.Dispose();
+        scrapperApp.Dispose();
+        telegramBot.Dispose();
     }
 
     [SetUp]
@@ -90,6 +92,7 @@ public class BlackBoxTests
     {
         // clear mocks
         HttpMock.Clear();
+        telegramBot.LocalNetMock.Clear();
         // HttpMock.Fallback.Throw(new HttpRequestException("No internet :)"));
         // clear database
         var db = scrapperApp.DB;
@@ -426,7 +429,7 @@ public class BlackBoxTests
     }
 
     [Test]
-    public async Task Scheduler_InvalidResponse_ErrorHandlingTest()
+    public async Task Scheduler_InvalidGithubResponse_ErrorHandlingTest()
     {
         HttpMock.When("https://api.github.com/*").Respond(x =>
         {
