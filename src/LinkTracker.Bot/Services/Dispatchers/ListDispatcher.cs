@@ -41,7 +41,7 @@ public class ListDispatcher(IScrapperClient client) : ICommandDispatcher
             ans.AppendLine($"Filtered links: {links.Count()}");
             foreach (var link in links)
             {
-                if (link.Tags == null || link.Tags.Count > 0)
+                if (link.Tags == null || link.Tags.Count == 0)
                 {
                     ans.AppendLine(link.Url);
                 }
