@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Options;
 using RichardSzalay.MockHttp;
 
 namespace LinkTracker.Tests;
@@ -22,6 +23,8 @@ public class ScrapperMockedTestFactory : WebApplicationFactory<Scrapper.TestEntr
             services.AddSingleton<IHttpMessageHandlerBuilderFilter>(
                     new TestHttpHandlerFilter(MockHttpMessageHandler)
                 );
+            services.RemoveAll<IOptions<GitHub>>();
+            services.AddSingleton(Options.Create(new GitHub { Token = "test-123" }));
             services.Configure<RemoteSettings>(settings =>
             {
                 settings.BotEndpoint = "http://localhost/";

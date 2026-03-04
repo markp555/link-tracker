@@ -29,7 +29,7 @@ public class TrackDispatcher(IScrapperClient client) : ICommandDispatcher
     private string EnterUrl => "Please enter URL of resource that you want to track\nCurrently supported: stackoverflow questions, github repositories";
 
     private string EnterTags => "Enter tags for this url in format \"C++, C#, Backend development\". If you don't want to add tags, write \"-\"";
-    
+
 
     private async Task RegisterChatIfNecesserly(long chatId)
     {
