@@ -51,7 +51,7 @@ builder.Services.AddQuartz(q =>
 
     q.AddTrigger(opts => opts
         .ForJob(job)
-        .WithSimpleSchedule(x => x.WithIntervalInMinutes(1).RepeatForever())
+        .WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(10)).RepeatForever())
         .StartNow());
 });
 

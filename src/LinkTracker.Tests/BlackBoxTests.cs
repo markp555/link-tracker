@@ -1,6 +1,13 @@
-﻿using LinkTracker.Scrapper.Models;
+﻿using LinkTracker.Scrapper;
+using LinkTracker.Scrapper.Models;
+using LinkTracker.Scrapper.Services;
 using LinkTracker.UnitTests;
+using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
+using Quartz;
 using RichardSzalay.MockHttp;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 
 namespace LinkTracker.Tests;
@@ -25,6 +32,26 @@ public static class TelegramExtesnions
         string msg = dialog.RecieveMessage();
         Assert.That(msg.ToLowerInvariant(), Does.Contain(msgText.ToLowerInvariant()));
         Assert.That(dialog.HasRecievedMessages, Is.False);
+    }
+
+    // Check that there is only one new message and skip it
+    public static void SkipMessage(this TelegramUserDialog dialog)
+    {
+        _ = dialog.RecieveMessage();
+        Assert.That(dialog.HasRecievedMessages, Is.False);
+    }
+
+    /// <summary>
+    /// Starts tracking of link https://github.com/markp555/Chess with tags C# and Chess
+    /// </summary>
+    public static async Task StartTrackingSampleLink(this TelegramUserDialog dialog)
+    {
+        await dialog.SendMessage("/track");
+        dialog.SkipMessage();
+        await dialog.SendMessage("https://github.com/markp555/Chess");
+        dialog.SkipMessage();
+        await dialog.SendMessage("C#, Chess");
+        dialog.SkipMessage();
     }
 }
 
@@ -81,9 +108,13 @@ public class BlackBoxTests
         // setting up network connections
         telegramBot.LocalNetMock.When("http://localhost/*").Respond(client2);
         telegramBot.LocalNetMock.When("https://localhost/*").Respond(client2);
+        // HttpMock.When("*localhost*").Respond(client1);
+    }
+
+    private void EnableScrapperToBotUpdates()
+    {
         HttpMock.When("http://localhost/*").Respond(client1);
         HttpMock.When("https://localhost/*").Respond(client1);
-        // HttpMock.When("*localhost*").Respond(client1);
     }
 
     [Test]
@@ -107,5 +138,182 @@ public class BlackBoxTests
         Assert.That(links, Has.ItemAt(0).Property("ResourceURL").EqualTo("https://github.com/markp555/Chess"));
         List<string> tags = ["C#", "C++", "Chess", "Best practices in parallel programming", "Game engines"];
         Assert.That(links, Has.ItemAt(0).Property("Tags").EqualTo(tags));
+    }
+
+    [TestCase("tbank://github.com/alpha-research/chatgpt")]
+    [TestCase("ssh://gitlab.education.tbank.ru/dotnet-academy/lesson01")]
+    [TestCase("https://habr.com/")]
+    [TestCase("git://github.com/alpha-research/chatgpt")]
+    public async Task AddWrongTrackingLink_Fail(string url)
+    {
+        using var dialog = bot.StartDialog(321);
+        await dialog.SendMessage("/track");
+        dialog.SkipMessage();
+        await dialog.SendMessage(url);
+        dialog.SkipMessage();
+        await dialog.SendMessage("C++, C#");
+        dialog.CheckMessageWeak("can't process your url");
+
+        var links = await scrapperApp.DB.GetTrackingLinks();
+        Assert.That(links, Is.Empty);
+    }
+
+    [Test]
+    public async Task TrackSameLinkTwice_Fail()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(async x =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        });
+
+        using var dialog = bot.StartDialog(123456789);
+        await dialog.SendMessage("/track");
+        dialog.SkipMessage();
+        await dialog.SendMessage("https://github.com/markp555/Chess");
+        dialog.SkipMessage();
+        await dialog.SendMessage("C++");
+        dialog.CheckMessageWeak("registered link successfully");
+        await dialog.SendMessage("/track");
+        dialog.SkipMessage();
+        await dialog.SendMessage("https://github.com/markp555/Chess");
+        dialog.SkipMessage();
+        await dialog.SendMessage("C#");
+        dialog.CheckMessageWeak("You have already registered this link");
+    }
+
+    [Test]
+    public async Task ListWithActiveTrackings_Ok()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(async x =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        });
+
+        using var dialog = bot.StartDialog(777);
+        await dialog.StartTrackingSampleLink();
+
+        await dialog.SendMessage("/list");
+        dialog.CheckMessageWeak("Enter tag");
+        await dialog.SendMessage("-");
+        dialog.CheckMessageWeak("https://github.com/markp555/Chess C#, Chess");
+    }
+
+    [Test]
+    public async Task ListWithNoStartedTrackings_Ok()
+    {
+        using var dialog = bot.StartDialog(42);
+
+        await dialog.SendMessage("/list");
+        dialog.SkipMessage();
+        await dialog.SendMessage("-");
+        dialog.CheckMessageWeak("you haven't started tracked any links");
+    }
+
+    [Test]
+    public async Task ListWithAllRemovedTrackings_Ok()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(async x =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        });
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+        await dialog.SendMessage("/untrack");
+        dialog.SkipMessage();
+        await dialog.SendMessage("https://github.com/markp555/Chess");
+        dialog.SkipMessage();
+
+        await dialog.SendMessage("/list");
+        dialog.SkipMessage();
+        await dialog.SendMessage("-");
+        dialog.CheckMessageWeak("No links found");
+    }
+
+    [Test]
+    public async Task ListWithNoLinksForGivenTag_Ok()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(async x =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        });
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        await dialog.SendMessage("/list");
+        dialog.SkipMessage();
+        await dialog.SendMessage("C++");
+        dialog.CheckMessageWeak("No links found");
+    }
+
+    [Test]
+    public async Task ListFiltered_Ok()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(async x =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        });
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        await dialog.SendMessage("/list");
+        dialog.CheckMessageWeak("Enter tag");
+        await dialog.SendMessage("C#");
+        dialog.CheckMessageWeak("https://github.com/markp555/Chess C#, Chess");
+    }
+
+    [Test]
+    public async Task Scheduler_Send_Test()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(x =>
+        {
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(new GithubScrapper.GitHubRepo
+                {
+                    Description = "Sample repo",
+                    StargazersCount = 1,
+                    FullName = "Sample repo",
+                    UpdatedAt = DateTime.Now
+                })
+            };
+        });
+
+        EnableScrapperToBotUpdates();
+        // create 4 users
+        // 1st and 2nd - tracking link
+        // 3rd unsubscribed
+        // 4th not tracking any links
+        using var user1 = bot.StartDialog(42);
+        await user1.StartTrackingSampleLink();
+
+        using var user2 = bot.StartDialog(43);
+        await user2.StartTrackingSampleLink();
+
+        using var user3 = bot.StartDialog(44);
+        await user3.StartTrackingSampleLink();
+        await user3.SendMessage("/untrack");
+        user3.SkipMessage();
+        await user3.SendMessage("https://github.com/markp555/Chess");
+        user3.CheckMessage("Link deleted");
+
+        using var user4 = bot.StartDialog(45);
+
+        using var scope = scrapperApp.Services.CreateScope();
+        var jobInfo = Substitute.For<IJobExecutionContext>();
+        jobInfo.CancellationToken.Returns(TestContext.CurrentContext.CancellationToken);
+        await scope.ServiceProvider.GetRequiredService<ScrapperLinksJob>().Execute(jobInfo);
+
+        user1.CheckMessageWeak("url updated");
+        user2.CheckMessageWeak("url updated");
+        Assert.That(user3.HasRecievedMessages, Is.False);
+        Assert.That(user4.HasRecievedMessages, Is.False);
     }
 }

@@ -7,4 +7,6 @@ public class RemoteSettings
     [Required]
     [Url]
     public string BotEndpoint { get; set; } = "";
+
+    public TimeSpan ScrappingInterval { get; set; } = TimeSpan.FromMinutes(10);
 }

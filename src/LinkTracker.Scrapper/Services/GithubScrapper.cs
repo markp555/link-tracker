@@ -11,7 +11,7 @@ public partial class GithubScrapper : IScrapper
     private readonly HttpClient _httpClient;
     private static readonly Regex RepoRegex = CreateRepoRegex();
 
-    private class GitHubRepo
+    public class GitHubRepo
     {
         [JsonPropertyName("full_name")]
         public string FullName { get; set; } = string.Empty;
