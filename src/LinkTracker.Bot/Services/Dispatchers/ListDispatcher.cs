@@ -47,7 +47,7 @@ public class ListDispatcher(IScrapperClient client) : ICommandDispatcher
                 }
                 else
                 {
-                    ans.Append($"{link.Url}: ");
+                    ans.Append($"{link.Url} ");
                     ans.AppendLine(string.Join(", ", link.Tags));
                 }
             }
