@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+option csharp_namespace = "LinkTracker.Bot";
+
+package main;
+
+message UpdateRequest
+{
+	string url = 1;
+	string description = 2;
+	int64 tgChat = 3;
+}
+
+message Void
+{
+
+}
+
+service TelegramBot
+{
+	rpc SendUpdate (UpdateRequest) returns (Void);
+}
+
+message LinkInformation
+{
+	string url = 1;
+	repeated string tags = 2;
+	repeated string filters = 3;
+	int64 id = 4;
+}
+
+message LinkListInformation
+{
+	repeated LinkInformation links = 1;
+}
+
+message AddLinkRequest
+{
+	string url = 1;
+	int64 chatId = 2;
+	repeated string tags = 3;
+	repeated string filters = 4;
+}
+
+message RemoveLinkRequest
+{
+	string url = 1;
+	int64 chatId = 2;
+}
+
+message ChatRequest
+{
+	int64 chatId = 1;
+}
+
+message Empty
+{
+
+}
+
+service Scrapper
+{
+	rpc AddLink (AddLinkRequest) returns (LinkInformation);
+	rpc RemoveLink (RemoveLinkRequest) returns (LinkInformation);
+	rpc RegisterChat (ChatRequest) returns (Empty);
+	rpc UnregisterChats (ChatRequest) returns (Empty);
+	rpc GetLinks (ChatRequest) returns (LinkListInformation);
+}

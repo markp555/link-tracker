@@ -8,16 +8,28 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Protos\main.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
+    <PackageReference Include="Grpc.AspNetCore.Server" Version="2.76.0" />
+    <PackageReference Include="Grpc.Core.Api" Version="2.76.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
     <PackageReference Include="Telegram.Bot" Version="22.9.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Services\TelegramBot\" />
+    <Folder Include="Services\GRPC\" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\LinkTracker.Dto\LinkTracker.Dto.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\main.proto" />
   </ItemGroup>
 
 </Project>

@@ -55,12 +55,29 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 
 // Add scrapper http client
-builder.Services.AddHttpClient<IScrapperClient, ScrapperClient>().ConfigureHttpClient((provider, c) =>
+builder.Services.AddHttpClient<ScrapperClient>().ConfigureHttpClient((provider, c) =>
     {
         // configure client here
         c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<RemoteBotSettings>>().Value.ScrapperEndpoint);
         c.Timeout = TimeSpan.FromSeconds(1);
     });
+
+// add grpc
+builder.Services.AddGrpc();
+
+builder.Services.AddTransient<IScrapperClient>(sp =>
+{
+    var opt = sp.GetRequiredService<IOptions<RemoteBotSettings>>().Value;
+    if (opt.UseGRPC)
+    {
+        return sp.GetRequiredService<ScrapperClient>();
+    }
+    else
+    {
+        
+    }
+});
+
 
 var app = builder.Build();
 
@@ -91,6 +108,7 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+app.MapGrpcService<LinkTracker.Bot.Services.GRPC.TelegramBotGRPCService>();
 
 app.Run();
 
