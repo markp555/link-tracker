@@ -1,5 +1,6 @@
 ﻿using LinkTracker.Bot.Configs;
 using LinkTracker.Bot.Services;
+using LinkTracker.Scrapper.Configs;
 using LinkTracker.UnitTests;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -31,6 +32,13 @@ internal class TelegramBotTestFactory : WebApplicationFactory<Bot.TestEntryPoint
             services.AddSingleton<IHttpMessageHandlerBuilderFilter>(
                     new TestHttpHandlerFilter(LocalNetMock)
                 );
+
+            // services.RemoveAll<IOptions<RemoteBotSettings>>();
+            // services.AddSingleton(Options.Create(new RemoteBotSettings { ScrapperEndpoint = "http://localhost/" }));
+            services.Configure<RemoteBotSettings>(settings =>
+            {
+                settings.ScrapperEndpoint = "http://localhost/";
+            });
         });
     }
 }

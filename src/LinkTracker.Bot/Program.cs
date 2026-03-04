@@ -55,10 +55,10 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 
 // Add scrapper http client
-builder.Services.AddHttpClient<IScrapperClient, ScrapperClient>().ConfigureHttpClient(c =>
+builder.Services.AddHttpClient<IScrapperClient, ScrapperClient>().ConfigureHttpClient((provider, c) =>
     {
         // configure client here
-        c.BaseAddress = new Uri("http://localhost:5048/");
+        c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<RemoteBotSettings>>().Value.ScrapperEndpoint);
         c.Timeout = TimeSpan.FromSeconds(1);
     });
 

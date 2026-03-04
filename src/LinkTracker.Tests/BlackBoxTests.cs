@@ -79,22 +79,10 @@ public class BlackBoxTests
             await db.RemoveTrackingLink(item);
         }
         // setting up network connections
-        telegramBot.LocalNetMock.When("*").Respond(async req =>
-        {
-            var old = req.RequestUri;
-            string s = old?.PathAndQuery?.Remove(0, 1) ?? "";
-            var req2 = new HttpRequestMessage(req.Method, s)
-            {
-                Content = req.Content
-            };
-            req2.Headers.Clear();
-            foreach (var item in req.Headers)
-            {
-                req2.Headers.Add(item.Key, item.Value);
-            }
-            var resp = await client2.SendAsync(req2);
-            return resp;
-        });
+        telegramBot.LocalNetMock.When("http://localhost/*").Respond(client2);
+        telegramBot.LocalNetMock.When("https://localhost/*").Respond(client2);
+        HttpMock.When("http://localhost/*").Respond(client1);
+        HttpMock.When("https://localhost/*").Respond(client1);
         // HttpMock.When("*localhost*").Respond(client1);
     }
 
@@ -106,8 +94,6 @@ public class BlackBoxTests
             await Task.Delay(TimeSpan.FromSeconds(1));
             return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
         });
-
-        var resp = await client2.SendAsync(new HttpRequestMessage(HttpMethod.Post, "tg-chat/123"));
 
         using var dialog = bot.StartDialog(123);
         await dialog.SendMessage("/track");

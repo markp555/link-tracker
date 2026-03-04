@@ -1,4 +1,5 @@
-﻿using LinkTracker.Scrapper.Repository;
+﻿using LinkTracker.Scrapper.Configs;
+using LinkTracker.Scrapper.Repository;
 using LinkTracker.Scrapper.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -21,6 +22,10 @@ public class ScrapperMockedTestFactory : WebApplicationFactory<Scrapper.TestEntr
             services.AddSingleton<IHttpMessageHandlerBuilderFilter>(
                     new TestHttpHandlerFilter(MockHttpMessageHandler)
                 );
+            services.Configure<RemoteSettings>(settings =>
+            {
+                settings.BotEndpoint = "http://localhost/";
+            });
         });
     }
 }
