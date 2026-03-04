@@ -83,6 +83,7 @@ public class TrackDispatcher(IScrapperClient client) : ICommandDispatcher
                         case HttpStatusCode.Conflict:
                             await bot.SendMessageAsync(new(message.From, "Oops. You have already registered this link"));
                             break;
+                        case HttpStatusCode.BadRequest:
                         case HttpStatusCode.UnprocessableEntity:
                             await bot.SendMessageAsync(new(message.From, "Hmm... Seems I can't process your url\nPlease make sure that it is on stackoverflow / github and try again"));
                             break;
