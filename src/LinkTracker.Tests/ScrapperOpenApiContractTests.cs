@@ -8,7 +8,7 @@ namespace LinkTracker.Tests;
 [Parallelizable(ParallelScope.None)]
 public class ScrapperOpenApiContractTests
 {
-    ScrapperMockedTestFactory scrapper;
+    ScrapperNoSchedulerFactory scrapper;
     HttpClient client;
     MockHttpMessageHandler httpMock;
 
