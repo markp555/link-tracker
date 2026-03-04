@@ -44,7 +44,7 @@ public class InMemoryRepository : IChatsRepository
         List<LinkTrackerData> copy;
         lock (_links)
         {
-            copy = _links;
+            copy = new(_links);
         }
         if (chatId != null)
         {
