@@ -26,6 +26,7 @@ public partial class StackoverflowScrapper : IScrapper
 
     private class StackApiResponse
     {
+        [JsonRequired]
         [JsonPropertyName("items")]
         public List<Question> Items { get; set; } = [];
 
@@ -41,15 +42,18 @@ public partial class StackoverflowScrapper : IScrapper
 
     private class Question
     {
+        [JsonRequired]
         [JsonPropertyName("question_id")]
         public long QuestionId { get; set; }
 
+        [JsonRequired]
         [JsonPropertyName("title")]
         public string Title { get; set; } = string.Empty;
 
         [JsonPropertyName("body")]
         public string? Body { get; set; }
 
+        [JsonRequired]
         [JsonPropertyName("last_activity_date")]
         public long LastActivityDateUnix { get; set; }
 

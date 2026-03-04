@@ -22,9 +22,11 @@ public partial class GithubScrapper : IScrapper
         [JsonPropertyName("updated_at")]
         public DateTime UpdatedAt { get; set; }
 
+        [JsonRequired]
         [JsonPropertyName("html_url")]
         public string HtmlUrl { get; set; } = string.Empty;
 
+        [JsonRequired]
         [JsonPropertyName("stargazers_count")]
         public int StargazersCount { get; set; }
     }
