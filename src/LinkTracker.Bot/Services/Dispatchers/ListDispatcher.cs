@@ -1,3 +1,4 @@
+using Grpc.Core;
 using LinkTracker.Bot.Repository;
 using System.Text;
 
@@ -57,6 +58,17 @@ public class ListDispatcher(IScrapperClient client) : ICommandDispatcher
                 ans.AppendLine("No links found under given criterias");
             }
             await bot.SendMessageAsync(new(userId, ans.ToString()));
+        }
+        catch (RpcException ex)
+        {
+            switch (ex.StatusCode)
+            {
+                case StatusCode.NotFound:
+                    await bot.SendMessageAsync(new(userId, "You haven't started tracked any links!"));
+                    break;
+                default:
+                    throw;
+            }
         }
         catch (ApiException ex)
         {

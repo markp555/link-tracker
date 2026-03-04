@@ -1,3 +1,4 @@
+using Grpc.Core;
 using LinkTracker.Bot.Repository;
 using System.Net;
 
@@ -36,6 +37,15 @@ public class TrackDispatcher(IScrapperClient client) : ICommandDispatcher
         try
         {
             await scrapper.RegisterChatAsync(chatId);
+        }
+        catch (RpcException ex)
+        {
+            if (ex.StatusCode == StatusCode.AlreadyExists)
+            {
+                // chat already registered
+                return;
+            }
+            throw;
         }
         catch (ApiException ex)
         {
@@ -86,6 +96,20 @@ public class TrackDispatcher(IScrapperClient client) : ICommandDispatcher
                         case HttpStatusCode.BadRequest:
                         case HttpStatusCode.UnprocessableEntity:
                             await bot.SendMessageAsync(new(message.From, "Hmm... Seems I can't process your url\nPlease make sure that it is on stackoverflow / github and try again"));
+                            break;
+                        default:
+                            throw;
+                    }
+                }
+                catch (RpcException ex)
+                {
+                    switch (ex.StatusCode)
+                    {
+                        case StatusCode.Unimplemented:
+                            await bot.SendMessageAsync(new(message.From, "Hmm... Seems I can't process your url\nPlease make sure that it is on stackoverflow / github and try again"));
+                            break;
+                        case StatusCode.AlreadyExists:
+                            await bot.SendMessageAsync(new(message.From, "Oops. You have already registered this link"));
                             break;
                         default:
                             throw;

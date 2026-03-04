@@ -1,3 +1,4 @@
+using Grpc.Core;
 using LinkTracker.Bot.Repository;
 using System.Net;
 
@@ -38,6 +39,17 @@ public class UnTrackDispatcher(IScrapperClient client) : ICommandDispatcher
                     switch (ex.StatusCode)
                     {
                         case HttpStatusCode.NotFound:
+                            await bot.SendMessageAsync(new(message.From, "Oops. Seems you haven't tracked this link. You can check all links currently tracking by command /list"));
+                            break;
+                        default:
+                            throw;
+                    }
+                }
+                catch (RpcException ex)
+                {
+                    switch (ex.StatusCode)
+                    {
+                        case StatusCode.NotFound:
                             await bot.SendMessageAsync(new(message.From, "Oops. Seems you haven't tracked this link. You can check all links currently tracking by command /list"));
                             break;
                         default:

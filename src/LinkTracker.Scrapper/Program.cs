@@ -7,6 +7,7 @@ using LinkTracker.Scrapper;
 using Quartz;
 using LinkTracker.Scrapper.Middleware;
 using Microsoft.Extensions.Options;
+using LinkTracker.Scrapper.Services.GRPC;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +31,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
-builder.Services.AddHttpClient<IBotApi, BotApiClient>()
+builder.Services.AddHttpClient<BotApiClient>()
     .ConfigureHttpClient((provider, c) =>
     {
         // configure client here
@@ -74,6 +75,28 @@ builder.Services.AddHttpClient<GithubScrapper>()
         c.Timeout = TimeSpan.FromSeconds(3);
     });
 
+// add grpc
+builder.Services.AddGrpc();
+builder.Services.AddGrpcClient<TelegramBot.TelegramBotClient>((provider, c) =>
+{
+    c.Address = new Uri(provider.GetRequiredService<IOptions<LinkTracker.Scrapper.Configs.RemoteSettings>>().Value.BotEndpoint);
+});
+builder.Services.AddSingleton<BotGRPCClient>();
+
+// automatically select the right service
+builder.Services.AddTransient<IBotApi>(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<LinkTracker.Scrapper.Configs.RemoteSettings>>().Value;
+    if (opts.UseGRPC)
+    {
+        return sp.GetRequiredService<BotGRPCClient>();
+    }
+    else
+    {
+        return sp.GetRequiredService<BotApiClient>();
+    }
+});
+
 var app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
@@ -92,5 +115,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapControllers();
+app.MapGrpcService<ScrapperGRPCService>();
 
 app.Run();

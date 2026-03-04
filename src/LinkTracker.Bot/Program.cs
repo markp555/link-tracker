@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using LinkTracker.Bot;
 using LinkTracker.Scrapper.Configs;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,16 +66,23 @@ builder.Services.AddHttpClient<ScrapperClient>().ConfigureHttpClient((provider, 
 // add grpc
 builder.Services.AddGrpc();
 
+// add grpc client for scrapper
+builder.Services.AddGrpcClient<Scrapper.ScrapperClient>((provider, client) =>
+{
+    client.Address = new Uri(provider.GetRequiredService<IOptions<RemoteBotSettings>>().Value.ScrapperEndpoint);
+});
+builder.Services.AddSingleton<LinkTracker.Bot.Services.GRPC.ScrapperGRPCClient>();
+
 builder.Services.AddTransient<IScrapperClient>(sp =>
 {
     var opt = sp.GetRequiredService<IOptions<RemoteBotSettings>>().Value;
-    if (opt.UseGRPC)
+    if (!opt.UseGRPC)
     {
         return sp.GetRequiredService<ScrapperClient>();
     }
     else
     {
-        
+        return sp.GetRequiredService<LinkTracker.Bot.Services.GRPC.ScrapperGRPCClient>();
     }
 });
 

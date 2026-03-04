@@ -9,6 +9,7 @@ public class TelegramBotGRPCService(ITelegramBot bot, ILogger<TelegramBotGRPCSer
 
     public override async Task<Void> SendUpdate(UpdateRequest request, ServerCallContext context)
     {
+        _logger.LogInformation("Recieved link update over grpc: {@Update}", request);
         await _bot.SendMessageAsync(new(request.TgChat, "Url updated: " + request.Url + "\n" + request.Description));
         return new Void();
     }

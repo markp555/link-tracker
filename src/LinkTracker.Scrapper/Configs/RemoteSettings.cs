@@ -9,4 +9,6 @@ public class RemoteSettings
     public string BotEndpoint { get; set; } = "";
 
     public TimeSpan ScrappingInterval { get; set; } = TimeSpan.FromMinutes(10);
+
+    public bool UseGRPC { get; set; } = false;
 }

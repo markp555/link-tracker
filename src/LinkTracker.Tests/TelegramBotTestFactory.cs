@@ -38,6 +38,7 @@ internal class TelegramBotTestFactory : WebApplicationFactory<Bot.TestEntryPoint
             services.Configure<RemoteBotSettings>(settings =>
             {
                 settings.ScrapperEndpoint = "http://localhost/";
+                settings.UseGRPC = false; // HTTP 2.0 not supported
             });
         });
     }

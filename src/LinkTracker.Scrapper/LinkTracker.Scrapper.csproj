@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Protos\main.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
     <PackageReference Include="Grpc.AspNetCore.Server" Version="2.76.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
@@ -22,6 +26,11 @@
 
   <ItemGroup>
     <Folder Include="Repository\" />
+    <Folder Include="Services\GRPC\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\main.proto" />
   </ItemGroup>
 
 </Project>
