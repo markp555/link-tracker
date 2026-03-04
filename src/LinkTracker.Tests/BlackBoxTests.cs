@@ -90,7 +90,7 @@ public class BlackBoxTests
     {
         // clear mocks
         HttpMock.Clear();
-        HttpMock.Fallback.Throw(new HttpRequestException("No internet :)"));
+        // HttpMock.Fallback.Throw(new HttpRequestException("No internet :)"));
         // clear database
         var db = scrapperApp.DB;
         // remove chats
@@ -269,6 +269,14 @@ public class BlackBoxTests
         dialog.CheckMessageWeak("https://github.com/markp555/Chess C#, Chess");
     }
 
+    private async Task RunScrapperAsync()
+    {
+        using var scope = scrapperApp.Services.CreateScope();
+        var jobInfo = Substitute.For<IJobExecutionContext>();
+        jobInfo.CancellationToken.Returns(TestContext.CurrentContext.CancellationToken);
+        await scope.ServiceProvider.GetRequiredService<ScrapperLinksJob>().Execute(jobInfo);
+    }
+
     [Test]
     public async Task Scheduler_Send_Test()
     {
@@ -306,14 +314,164 @@ public class BlackBoxTests
 
         using var user4 = bot.StartDialog(45);
 
-        using var scope = scrapperApp.Services.CreateScope();
-        var jobInfo = Substitute.For<IJobExecutionContext>();
-        jobInfo.CancellationToken.Returns(TestContext.CurrentContext.CancellationToken);
-        await scope.ServiceProvider.GetRequiredService<ScrapperLinksJob>().Execute(jobInfo);
+        await RunScrapperAsync();
 
         user1.CheckMessageWeak("url updated");
         user2.CheckMessageWeak("url updated");
         Assert.That(user3.HasRecievedMessages, Is.False);
         Assert.That(user4.HasRecievedMessages, Is.False);
+    }
+
+    [Test]
+    public async Task Scheduler_NotFound_ErrorHandlingTest()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(x =>
+        {
+            return new HttpResponseMessage(System.Net.HttpStatusCode.NotFound);
+        });
+
+        EnableScrapperToBotUpdates();
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        Assert.DoesNotThrowAsync(RunScrapperAsync);
+
+        dialog.CheckMessageWeak("Failed to scrap url");
+    }
+
+    [Test]
+    public async Task Scheduler_TooManyRequests_ErrorHandlingTest()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(x =>
+        {
+            return new HttpResponseMessage(System.Net.HttpStatusCode.TooManyRequests);
+        });
+
+        EnableScrapperToBotUpdates();
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        Assert.DoesNotThrowAsync(RunScrapperAsync);
+
+        dialog.CheckMessageWeak("Failed to scrap url");
+    }
+
+    [Test]
+    public async Task Scheduler_EmptyResponse_ErrorHandlingTest()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(x =>
+        {
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        });
+
+        EnableScrapperToBotUpdates();
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        Assert.DoesNotThrowAsync(RunScrapperAsync);
+
+        dialog.CheckMessageWeak("Failed to scrap url");
+    }
+
+    [Test]
+    public async Task Scheduler_GithubNotResponding_ErrorHandlingTest()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(async x =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(42));
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(new GithubScrapper.GitHubRepo
+                {
+                    Description = "Sample repo",
+                    StargazersCount = 1,
+                    FullName = "Sample repo",
+                    UpdatedAt = DateTime.Now
+                })
+            };
+        });
+
+        EnableScrapperToBotUpdates();
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        Assert.DoesNotThrowAsync(RunScrapperAsync);
+
+        dialog.CheckMessageWeak("Failed to scrap url");
+    }
+
+    [Test]
+    public async Task Scheduler_RedirectToCaptcha_ErrorHandlingTest()
+    {
+        HttpMock.When("https://github.com/captcha").Respond(System.Net.HttpStatusCode.NoContent);
+        HttpMock.When("https://api.github.com/*").Respond(x =>
+        {
+            var resp = new HttpResponseMessage(System.Net.HttpStatusCode.TemporaryRedirect);
+            resp.Headers.Add("Location", "https://github.com/captcha");
+            return resp;
+        });
+
+        EnableScrapperToBotUpdates();
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        Assert.DoesNotThrowAsync(RunScrapperAsync);
+
+        dialog.CheckMessageWeak("Failed to scrap url");
+    }
+
+    [Test]
+    public async Task Scheduler_InvalidResponse_ErrorHandlingTest()
+    {
+        HttpMock.When("https://api.github.com/*").Respond(x =>
+        {
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(new
+                {
+                    ErrorName = "Invalid API key",
+                    Description = "Your api token expired"
+                })
+            };
+        });
+
+        EnableScrapperToBotUpdates();
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        Assert.DoesNotThrowAsync(RunScrapperAsync);
+
+        dialog.CheckMessageWeak("Failed to scrap url");
+    }
+
+    [Test]
+    public async Task Scheduler_InvalidStackoverflowResponse_ErrorHandlingTest()
+    {
+        HttpMock.When("https://api.stackexchange.com/*").Respond(x =>
+        {
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(new
+                {
+                    ErrorName = "Invalid API key",
+                    Description = "Your api token expired"
+                })
+            };
+        });
+
+        EnableScrapperToBotUpdates();
+
+        using var dialog = bot.StartDialog(42);
+        await dialog.StartTrackingSampleLink();
+
+        Assert.DoesNotThrowAsync(RunScrapperAsync);
+
+        dialog.CheckMessageWeak("Failed to scrap url");
     }
 }
