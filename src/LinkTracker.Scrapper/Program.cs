@@ -6,6 +6,7 @@ using System.Net;
 using LinkTracker.Scrapper;
 using Quartz;
 using LinkTracker.Scrapper.Middleware;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,9 +15,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.Services.AddOptions<LinkTracker.Scrapper.Configs.StackOverflow>()
-    .Bind(builder.Configuration.GetSection("StackOverflow"));
+    .Bind(builder.Configuration.GetSection("StackOverflow"))
+    .ValidateDataAnnotations();
 builder.Services.AddOptions<LinkTracker.Scrapper.Configs.GitHub>()
-    .Bind(builder.Configuration.GetSection("Github"));
+    .Bind(builder.Configuration.GetSection("Github"))
+    .ValidateDataAnnotations();
+builder.Services.AddOptions<LinkTracker.Scrapper.Configs.RemoteSettings>()
+    .Bind(builder.Configuration.GetSection("Remote"))
+    .ValidateDataAnnotations();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -25,11 +31,11 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 
 builder.Services.AddHttpClient<IBotApi, BotApiClient>()
-    .ConfigureHttpClient(c =>
+    .ConfigureHttpClient((provider, c) =>
     {
         // configure client here
-        c.Timeout = TimeSpan.FromSeconds(3);
-        c.BaseAddress = new Uri("http://localhost:5205/");
+        c.Timeout = TimeSpan.FromSeconds(1.5);
+        c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<LinkTracker.Scrapper.Configs.RemoteSettings>>().Value.BotEndpoint);
     });
 
 builder.Services.AddSingleton<IChatsRepository, InMemoryRepository>();

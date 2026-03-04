@@ -9,6 +9,7 @@ using Telegram.Bot;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LinkTracker.Bot;
+using LinkTracker.Scrapper.Configs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,10 @@ builder.Services.AddOpenApi();
 // Add options for telegram bot token
 builder.Services.AddOptions<BotSettings>()
     .Bind(builder.Configuration.GetSection("BotSettings"))
+    .ValidateDataAnnotations();
+// Add options for url of scrapper
+builder.Services.AddOptions<RemoteBotSettings>()
+    .Bind(builder.Configuration.GetSection("Remote"))
     .ValidateDataAnnotations();
 
 // Add telegram client
