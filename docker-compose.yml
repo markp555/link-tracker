@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: scrapper_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trackerdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  scrapper:
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    container_name: scrapper_service
+    working_dir: ./src/LinkTracker.Scrapper
+    command: dotnet run
+    environment:
+      - Remote__DatabaseConnectionString = Host=db;Port=5432;Database=trackerdb;Username=postgres;Password=postgres
+      - Remote__DatabaseType = SQL
+      - Remote__BotEndpoint = http://bot:5205/
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    expose:
+      - "5048"
+    volumes:
+      - nuget_cache:~/.nuget
+    restart: unless-stopped
+
+  bot:
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    working_dir: ./src/LinkTracker.Bot
+    command: dotnet run
+    container_name: bot_service
+    environment:
+      - Remote__ScrapperEndpoint = http://scrapper:5048/
+    networks:
+      - app-network
+    expose:
+      - "5205"
+    volumes:
+      - nuget_cache:~/.nuget
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  nuget_cache:
+
+networks:
+  app-network:
+    driver: bridge

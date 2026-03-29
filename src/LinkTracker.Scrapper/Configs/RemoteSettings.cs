@@ -2,6 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LinkTracker.Scrapper.Configs;
 
+public enum DatabaseType
+{
+    ORM,
+    SQL
+}
+
 public class RemoteSettings
 {
     [Required]
@@ -14,4 +20,10 @@ public class RemoteSettings
 
     [Range(1, int.MaxValue)]
     public int MaxThreads { get; set; } = 10;
+
+    [Required]
+    public DatabaseType DatabaseType { get; set; } = DatabaseType.SQL;
+
+    [Required]
+    public string DatabaseConnectionString { get; set; } = string.Empty;
 }
