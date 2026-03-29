@@ -6,7 +6,7 @@ public class CancelDispatcher : ICommandDispatcher
 {
     public Task Cancel()
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 
     public async Task<bool> ProcessMessage(ITelegramBot bot, IncomingMessage message, IUsersRepository repository)

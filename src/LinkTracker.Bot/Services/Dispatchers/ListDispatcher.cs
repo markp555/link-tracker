@@ -36,10 +36,10 @@ public class ListDispatcher(IScrapperClient client) : ICommandDispatcher
         try
         {
             var res = await scrapper.GetTrackedLinksAsync(userId);
-            var links = msg == "-" ? res.Links : res.Links.Where(link => link.Tags?.Contains(msg) ?? false);
+            var links = msg == "-" ? res.Links : res.Links.Where(link => link.Tags?.Contains(msg) ?? false).ToList();
             StringBuilder ans = new();
             ans.AppendLine($"Total links: {res.Size}");
-            ans.AppendLine($"Filtered links: {links.Count()}");
+            ans.AppendLine($"Filtered links: {links.Count}");
             foreach (var link in links)
             {
                 if (link.Tags == null || link.Tags.Count == 0)
@@ -52,7 +52,7 @@ public class ListDispatcher(IScrapperClient client) : ICommandDispatcher
                     ans.AppendLine(string.Join(", ", link.Tags));
                 }
             }
-            if (!links.Any())
+            if (links.Count == 0)
             {
                 ans.AppendLine();
                 ans.AppendLine("No links found under given criterias");

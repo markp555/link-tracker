@@ -24,11 +24,13 @@ public class ScrapperGRPCService(IChatsRepository repository, ILogger<ScrapperGR
 
     private static LinkInformation ConvertLink(LinkTrackerData link)
     {
-        LinkInformation info = new();
-        info.Id = link.Id;
-        info.Url = link.ResourceURL;
-        Convert(info.Filters, link.Filters);
-        Convert(info.Tags, link.Tags);
+        LinkInformation info = new()
+        {
+            Id = link.Id,
+            Url = link.ResourceURL,
+            Filters = { link.Filters },
+            Tags = { link.Tags }
+        };
         return info;
     }
 
