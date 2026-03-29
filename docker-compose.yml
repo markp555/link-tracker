@@ -28,9 +28,12 @@ services:
     env_file: .env
     user: root
     environment:
+      - Remote__UseGRPC=false
       - Remote__DatabaseConnectionString=Host=db;Port=5432;Database=trackerdb;Username=postgres;Password=postgres
       - Remote__DatabaseType=SQL
       - Remote__BotEndpoint=http://bot:5205/
+      - ASPNETCORE_HTTP_PORTS=
+      - ASPNETCORE_URLS=
     depends_on:
       db:
         condition: service_healthy
@@ -51,7 +54,10 @@ services:
     container_name: bot_service
     user: root
     environment:
+      - Remote__UseGRPC=false
       - Remote__ScrapperEndpoint=http://scrapper:5048/
+      - ASPNETCORE_HTTP_PORTS=
+      - ASPNETCORE_URLS=
     networks:
       - app-network
     expose:
@@ -59,6 +65,9 @@ services:
     volumes:
       - nuget_cache:/home/root/.nuget
       - ./src:/src
+    depends_on:
+      scrapper:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
