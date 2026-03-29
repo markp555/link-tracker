@@ -11,4 +11,7 @@ public class RemoteSettings
     public TimeSpan ScrappingInterval { get; set; } = TimeSpan.FromMinutes(10);
 
     public bool UseGRPC { get; set; } = false;
+
+    [Range(1, int.MaxValue)]
+    public int MaxThreads { get; set; } = 10;
 }

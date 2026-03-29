@@ -2,6 +2,8 @@ using LinkTracker.Scrapper.Repository;
 using LinkTracker.Scrapper.Services;
 using LinkTracker.Scrapper.Models;
 using Quartz;
+using Microsoft.Extensions.Options;
+using LinkTracker.Scrapper.Configs;
 
 namespace LinkTracker.Scrapper;
 
@@ -9,19 +11,36 @@ public class ScrapperLinksJob(
     ILogger<ScrapperLinksJob> logger,
     IChatsRepository repository,
     IScrapper scrapper,
-    IBotApi botApi
+    IBotApi botApi,
+    IOptions<RemoteSettings> options
     ) : IJob
 {
     private readonly ILogger<ScrapperLinksJob> _logger = logger;
     private readonly IChatsRepository repository = repository;
     private readonly IScrapper scrapper = scrapper;
     private readonly IBotApi botApi = botApi;
+    private readonly int maxThreads = options.Value.MaxThreads;
 
     public async Task Execute(IJobExecutionContext context)
     {
         var links = await repository.GetTrackingLinks();
+        SemaphoreSlim throttler = new(maxThreads);
+
+        async Task<ScrapperResult> ScrapLink(string url)
+        {
+            await throttler.WaitAsync();
+            try
+            {
+                return await scrapper.Scrap(url, context.CancellationToken);
+            }
+            finally
+            {
+                throttler.Release();
+            }
+        };
+
         // create all tasks simulaneously
-        List<(LinkTrackerData, Task<ScrapperResult>)> tasks = links.Select(link => (link, scrapper.Scrap(link.ResourceURL, context.CancellationToken))).ToList();
+        List<(LinkTrackerData, Task<ScrapperResult>)> tasks = links.Select(link => (link, ScrapLink(link.ResourceURL))).ToList();
         List<Task> sendUpdateTasks = [];
         _logger.LogInformation("Begin scrapping all links on schedule");
         foreach (var task in tasks)
