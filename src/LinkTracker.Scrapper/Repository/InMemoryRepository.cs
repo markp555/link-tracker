@@ -1,4 +1,5 @@
-using LinkTracker.Scrapper.Models;
+using LinkTracker.ScrapperBase.Models;
+using LinkTracker.ScrapperBase.Repository;
 
 namespace LinkTracker.Scrapper.Repository;
 

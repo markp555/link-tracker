@@ -1,10 +1,10 @@
-using LinkTracker.Scrapper.Repository;
 using LinkTracker.Scrapper.Services;
-using LinkTracker.Scrapper.Models;
 using Quartz;
 using Microsoft.Extensions.Options;
 using LinkTracker.Scrapper.Configs;
 using System;
+using LinkTracker.ScrapperBase.Repository;
+using LinkTracker.ScrapperBase.Models;
 
 namespace LinkTracker.Scrapper;
 

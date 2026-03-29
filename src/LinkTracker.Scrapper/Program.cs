@@ -8,6 +8,7 @@ using Quartz;
 using LinkTracker.Scrapper.Middleware;
 using Microsoft.Extensions.Options;
 using LinkTracker.Scrapper.Services.GRPC;
+using LinkTracker.ScrapperBase.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 

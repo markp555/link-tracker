@@ -1,7 +1,8 @@
 using LinkTracker.Dto;
 using LinkTracker.Scrapper.Models;
-using LinkTracker.Scrapper.Repository;
 using LinkTracker.Scrapper.Services;
+using LinkTracker.ScrapperBase.Models;
+using LinkTracker.ScrapperBase.Repository;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 

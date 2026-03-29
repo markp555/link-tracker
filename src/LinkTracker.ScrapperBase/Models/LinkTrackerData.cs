@@ -1,6 +1,6 @@
 using LinkTracker.Dto;
 
-namespace LinkTracker.Scrapper.Models;
+namespace LinkTracker.ScrapperBase.Models;
 
 public class LinkTrackerData : IEquatable<LinkTrackerData>
 {

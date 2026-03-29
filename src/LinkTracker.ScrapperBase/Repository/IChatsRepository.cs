@@ -1,6 +1,6 @@
-using LinkTracker.Scrapper.Models;
+using LinkTracker.ScrapperBase.Models;
 
-namespace LinkTracker.Scrapper.Repository;
+namespace LinkTracker.ScrapperBase.Repository;
 
 public interface IChatsRepository
 {

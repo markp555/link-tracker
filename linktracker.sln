@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkTracker.UnitTests", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkTracker.Dto", "src\LinkTracker.Dto\LinkTracker.Dto.csproj", "{CCEC52F2-B72B-4EE0-9C03-3EBEA92A0057}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkTracker.ScrapperBase", "src\LinkTracker.ScrapperBase\LinkTracker.ScrapperBase.csproj", "{ABF1EB52-DE45-4B61-994F-32451FDCB651}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,18 @@ Global
 		{CCEC52F2-B72B-4EE0-9C03-3EBEA92A0057}.Release|x64.Build.0 = Release|Any CPU
 		{CCEC52F2-B72B-4EE0-9C03-3EBEA92A0057}.Release|x86.ActiveCfg = Release|Any CPU
 		{CCEC52F2-B72B-4EE0-9C03-3EBEA92A0057}.Release|x86.Build.0 = Release|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Debug|x64.Build.0 = Debug|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Debug|x86.Build.0 = Debug|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Release|x64.ActiveCfg = Release|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Release|x64.Build.0 = Release|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Release|x86.ActiveCfg = Release|Any CPU
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -95,5 +109,6 @@ Global
 		{6E73FE0D-5EAD-423C-A0D0-3107D2472F83} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7668D185-A899-4E37-9290-B0C26134C184} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{CCEC52F2-B72B-4EE0-9C03-3EBEA92A0057} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{ABF1EB52-DE45-4B61-994F-32451FDCB651} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
