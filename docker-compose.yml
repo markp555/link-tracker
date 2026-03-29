@@ -23,8 +23,10 @@ services:
   scrapper:
     image: mcr.microsoft.com/dotnet/sdk:9.0
     container_name: scrapper_service
-    working_dir: ./src/LinkTracker.Scrapper
+    working_dir: /src/LinkTracker.Scrapper/
     command: dotnet run
+    env_file: .env
+    user: root
     environment:
       - Remote__DatabaseConnectionString=Host=db;Port=5432;Database=trackerdb;Username=postgres;Password=postgres
       - Remote__DatabaseType=SQL
@@ -37,14 +39,17 @@ services:
     expose:
       - "5048"
     volumes:
-      - nuget_cache:~/.nuget
+      - nuget_cache:/home/root/.nuget
+      - ./src:/src
     restart: unless-stopped
 
   bot:
     image: mcr.microsoft.com/dotnet/sdk:9.0
-    working_dir: ./src/LinkTracker.Bot
+    working_dir: /src/LinkTracker.Bot/
+    env_file: .env
     command: dotnet run
     container_name: bot_service
+    user: root
     environment:
       - Remote__ScrapperEndpoint=http://scrapper:5048/
     networks:
@@ -52,7 +57,8 @@ services:
     expose:
       - "5205"
     volumes:
-      - nuget_cache:~/.nuget
+      - nuget_cache:/home/root/.nuget
+      - ./src:/src
     restart: unless-stopped
 
 volumes:
