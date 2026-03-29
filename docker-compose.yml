@@ -26,9 +26,9 @@ services:
     working_dir: ./src/LinkTracker.Scrapper
     command: dotnet run
     environment:
-      - Remote__DatabaseConnectionString = Host=db;Port=5432;Database=trackerdb;Username=postgres;Password=postgres
-      - Remote__DatabaseType = SQL
-      - Remote__BotEndpoint = http://bot:5205/
+      - Remote__DatabaseConnectionString=Host=db;Port=5432;Database=trackerdb;Username=postgres;Password=postgres
+      - Remote__DatabaseType=SQL
+      - Remote__BotEndpoint=http://bot:5205/
     depends_on:
       db:
         condition: service_healthy
@@ -46,7 +46,7 @@ services:
     command: dotnet run
     container_name: bot_service
     environment:
-      - Remote__ScrapperEndpoint = http://scrapper:5048/
+      - Remote__ScrapperEndpoint=http://scrapper:5048/
     networks:
       - app-network
     expose:
