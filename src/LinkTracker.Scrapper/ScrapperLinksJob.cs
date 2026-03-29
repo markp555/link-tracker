@@ -4,6 +4,7 @@ using LinkTracker.Scrapper.Models;
 using Quartz;
 using Microsoft.Extensions.Options;
 using LinkTracker.Scrapper.Configs;
+using System;
 
 namespace LinkTracker.Scrapper;
 
@@ -25,7 +26,7 @@ public class ScrapperLinksJob(
     {
         var links = await repository.GetTrackingLinks();
         SemaphoreSlim throttler = new(maxThreads);
-        async Task<ScrapperResult> ScrapLink(string url)
+        var ScrapLink = async (string url) =>
         {
             await throttler.WaitAsync();
             try
@@ -37,8 +38,6 @@ public class ScrapperLinksJob(
                 throttler.Release();
             }
         };
-
-
         // create all tasks simulaneously
         List<(LinkTrackerData, Task<ScrapperResult>)> tasks = links.Select(link => (link, ScrapLink(link.ResourceURL))).ToList();
         List<Task> sendUpdateTasks = [];
