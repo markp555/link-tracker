@@ -37,6 +37,7 @@ public class ScrapperLinksJob(
                 throttler.Release();
             }
         };
+
         // create all tasks simulaneously
         List<(LinkTrackerData, Task<ScrapperResult>)> tasks = links.Select(link => (link, ScrapLink(link.ResourceURL))).ToList();
         List<Task> sendUpdateTasks = [];
