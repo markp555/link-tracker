@@ -75,9 +75,9 @@ SELECT COUNT(*) FROM chats WHERE tgid = @Id;";
     private async Task<IEnumerable<string>> RecieveLinkList(long id, string listName, string fieldName)
     {
         using var conn = GetConnection();
-        var sql = @"
-SELECT @Field FROM @Table WHERE link_id = @Id;";
-        return await conn.QueryAsync<string>(sql, new { Table = listName, Field = fieldName, Id = id });
+        var sql = $@"
+SELECT {fieldName} FROM {listName} WHERE link_id = @Id;";
+        return await conn.QueryAsync<string>(sql, new { Id = id });
     }
 
     private async Task RecieveLinkTracker(LinkTrackerData ltd)
