@@ -41,7 +41,7 @@ builder.Services.AddHttpClient<BotApiClient>()
     .ConfigureHttpClient((provider, c) =>
     {
         // configure client here
-        c.Timeout = TimeSpan.FromSeconds(1.5);
+        c.Timeout = TimeSpan.FromSeconds(5);
         c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<LinkTracker.Scrapper.Configs.RemoteSettings>>().Value.BotEndpoint);
     });
 
