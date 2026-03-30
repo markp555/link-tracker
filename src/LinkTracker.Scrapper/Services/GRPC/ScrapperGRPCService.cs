@@ -1,8 +1,10 @@
 using Grpc.Core;
 using LinkTracker.Dto;
 using LinkTracker.Scrapper.Models;
+using LinkTracker.Scrapper.Repository;
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
+using Microsoft.Extensions.Logging;
 
 namespace LinkTracker.Scrapper.Services.GRPC;
 
@@ -25,13 +27,11 @@ public class ScrapperGRPCService(IChatsRepository repository, ILogger<ScrapperGR
 
     private static LinkInformation ConvertLink(LinkTrackerData link)
     {
-        LinkInformation info = new()
-        {
-            Id = link.Id,
-            Url = link.ResourceURL,
-            Filters = { link.Filters },
-            Tags = { link.Tags }
-        };
+        LinkInformation info = new();
+        info.Id = link.Id;
+        info.Url = link.ResourceURL;
+        Convert(info.Filters, link.Filters);
+        Convert(info.Tags, link.Tags);
         return info;
     }
 

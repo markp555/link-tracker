@@ -6,15 +6,26 @@ public class ScrapperGRPCClient(Bot.Scrapper.ScrapperClient client) : IScrapperC
 {
     private readonly Bot.Scrapper.ScrapperClient _client = client;
 
+    private static void Convert<T>(Google.Protobuf.Collections.RepeatedField<T> target, IEnumerable<T>? from)
+    {
+        if (from != null)
+        {
+            foreach (var item in from)
+            {
+                target.Add(item);
+            }
+        }
+    }
+
     public async Task<LinkResponseDto> AddLinkAsync(long chatId, AddLinkRequestDto request, CancellationToken ct = default)
     {
         AddLinkRequest linkRequest = new()
         {
             Url = request.Link,
-            ChatId = chatId,
-            Tags = { request.Tags },
-            Filters = { request.Filters }
+            ChatId = chatId
         };
+        Convert(linkRequest.Tags, request.Tags);
+        Convert(linkRequest.Filters, request.Filters);
         var resp = await _client.AddLinkAsync(linkRequest, cancellationToken: ct);
         return new()
         {
