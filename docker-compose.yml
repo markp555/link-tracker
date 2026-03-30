@@ -30,7 +30,6 @@ services:
     environment:
       - Remote__UseGRPC=false
       - Remote__DatabaseConnectionString=Host=db;Port=5432;Database=trackerdb;Username=postgres;Password=postgres
-      - Remote__DatabaseType=SQL
       - Remote__BotEndpoint=http://bot:5205/
       - ASPNETCORE_HTTP_PORTS=
       - ASPNETCORE_URLS=
