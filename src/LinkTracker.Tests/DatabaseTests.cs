@@ -9,6 +9,7 @@ using NUnit.Framework;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using LinkTracker.ScrapperBase.Repository;
+using Testcontainers.PostgreSql;
 
 namespace LinkTracker.Tests;
 
@@ -31,7 +32,12 @@ public class DatabaseTests
     [OneTimeSetUp]
     public async Task StartHost()
     {
-        postgreSqlContainer = new(new Testcontainers.PostgreSql.PostgreSqlConfiguration("trackerdb", "postgres", "postgres"));
+        postgreSqlContainer = new PostgreSqlBuilder()
+            .WithImage("postgres:15-alpine") // Specify the Postgres version
+            .WithDatabase("trackerdb")
+            .WithUsername("postgres")
+            .WithPassword("postgres")
+            .Build();
         await postgreSqlContainer.StartAsync();
         scrapper = new();
         scrapper.DatabaseType = tp;
