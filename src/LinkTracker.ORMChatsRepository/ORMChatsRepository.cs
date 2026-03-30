@@ -39,11 +39,12 @@ public class ORMChatsRepository : IChatsRepository
     public async Task AddTrackingLink(LinkTrackerData link)
     {
         using var conn = GetConnection();
+        await conn.OpenAsync();
         await using var trans = await conn.BeginTransactionAsync();
         var sql = @"
 INSERT INTO links(resource_url, last_update, user_id) 
 VALUES (@ResourceURL, @LastUpdate, @UserId)
-RETURNING INT;";
+RETURNING Id;";
         link.Id = await conn.ExecuteScalarAsync<long>(sql, link);
         foreach (string tag in link.Tags)
         {
@@ -211,7 +212,6 @@ DELETE FROM chats WHERE tgid = @Id;";
     public async Task UpdateTrackingLink(LinkTrackerData link)
     {
         using var conn = GetConnection();
-        await using var trans = await conn.BeginTransactionAsync();
         var sql = @"
 UPDATE links
 SET last_update = @LastUpdate, resource_url = @ResourceURL
