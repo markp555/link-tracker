@@ -11,11 +11,11 @@ public class ORMChatsRepository : IChatsRepository
     private readonly string _connectionString;
     private NpgsqlConnection? _connection = null;
 
-    public ORMChatsRepository(string connectionString)
+    public ORMChatsRepository(DatabaseSettings settings)
     {
         Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
-        _connectionString = connectionString;
+        _connectionString = settings.ConnectionString;
     }
 
     private NpgsqlConnection GetConnection()

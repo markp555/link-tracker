@@ -15,4 +15,8 @@
     <ProjectReference Include="..\LinkTracker.ScrapperBase\LinkTracker.ScrapperBase.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+
 </Project>
