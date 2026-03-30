@@ -23,7 +23,7 @@ public class RemoteSettings
     public int MaxThreads { get; set; } = 10;
 
     [Required]
-    public DatabaseType DatabaseType { get; set; } = DatabaseType.InMemory;
+    public DatabaseType DatabaseType { get; set; } = DatabaseType.ORM;
 
     public string DatabaseConnectionString { get; set; } = string.Empty;
 }
