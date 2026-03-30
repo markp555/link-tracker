@@ -15,6 +15,8 @@ public class ScrapperMockedTestFactory : WebApplicationFactory<Scrapper.TestEntr
 {
     public MockHttpMessageHandler MockHttpMessageHandler { get; } = new();
     public IChatsRepository DB => Services.GetRequiredService<IChatsRepository>();
+    public DatabaseType DatabaseType { get; set; } = DatabaseType.InMemory;
+    public string ConnectionString { get; set; } = "";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -29,7 +31,8 @@ public class ScrapperMockedTestFactory : WebApplicationFactory<Scrapper.TestEntr
             {
                 settings.BotEndpoint = "http://localhost/";
                 settings.UseGRPC = false; // HTTP 2.0 not supported
-                settings.DatabaseType = DatabaseType.InMemory;
+                settings.DatabaseType = DatabaseType;
+                settings.DatabaseConnectionString = ConnectionString;
             });
         });
     }
