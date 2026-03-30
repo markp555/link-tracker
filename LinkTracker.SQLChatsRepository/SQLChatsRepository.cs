@@ -1,0 +1,269 @@
+﻿using LinkTracker.ScrapperBase.Models;
+using LinkTracker.ScrapperBase.Repository;
+using Npgsql;
+
+namespace LinkTracker.SQLChatsRepository;
+
+public class SQLChatsRepository(DatabaseSettings settings) : IChatsRepository
+{
+    private NpgsqlDataSource dataSource = NpgsqlDataSource.Create(settings.ConnectionString);
+
+    public async Task AddTagToLink(long linkId, string tag)
+    {
+        var sql = "INSERT INTO tags(tag_name, link_id) VALUES (@tag, @id);";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("tag", tag);
+        cmd.Parameters.AddWithValue("id", linkId);
+        int x = await cmd.ExecuteNonQueryAsync();
+        if (x <= 0)
+        {
+            throw new InvalidOperationException("Adding tag failed");
+        }
+    }
+
+    public async Task AddTrackingLink(LinkTrackerData link)
+    {
+        await using var conn = dataSource.CreateConnection();
+        await conn.OpenAsync();
+        await using var trans = await conn.BeginTransactionAsync();
+        var sql = @"
+INSERT INTO links(resource_url, last_update, user_id) 
+VALUES (@ResourceURL, @LastUpdate, @UserId)
+RETURNING Id;";
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("ResourceURL", link.ResourceURL);
+            cmd.Parameters.AddWithValue("LastUpdate", link.LastUpdate);
+            cmd.Parameters.AddWithValue("UserId", link.UserId);
+            link.Id = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+        }
+        foreach (string tag in link.Tags)
+        {
+            sql = @"
+INSERT INTO tags(tag_name, link_id)
+VALUES(@value, @id);";
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("value", tag);
+            cmd.Parameters.AddWithValue("id", link.Id);
+            int x = await cmd.ExecuteNonQueryAsync();
+            if (x == 0)
+            {
+                throw new InvalidOperationException("Error inserting link into database");
+            }
+        }
+        foreach (string filter in link.Filters)
+        {
+            sql = @"
+INSERT INTO filters(filter, link_id)
+VALUES(@value, @id);";
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("value", filter);
+            cmd.Parameters.AddWithValue("id", link.Id);
+            int x = await cmd.ExecuteNonQueryAsync();
+            if (x == 0)
+            {
+                throw new InvalidOperationException("Error inserting link into database");
+            }
+        }
+        await trans.CommitAsync();
+    }
+
+    public async Task<bool> ChatExists(long chatId)
+    {
+        var sql = @"
+SELECT COUNT(*) FROM chats WHERE tgid = @id;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("id", chatId);
+        int cnt = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+        return cnt > 0;
+    }
+
+    private async Task<List<string>> RecieveLinkList(long id, string listName, string fieldName)
+    {
+        var sql = $@"
+SELECT {fieldName} FROM {listName} WHERE link_id = @id;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("id", id);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        List<string> res = [];
+        while (await reader.ReadAsync())
+        {
+            res.Add(reader.GetString(0));
+        }
+        return res;
+    }
+
+    private async Task RecieveLinkTracker(LinkTrackerData ltd)
+    {
+        long id = ltd.Id;
+        ltd.Filters = await RecieveLinkList(id, "filters", "filter");
+        ltd.Tags = await RecieveLinkList(id, "tags", "tag_name");
+    }
+
+    private LinkTrackerData ReadData(NpgsqlDataReader reader)
+    {
+        LinkTrackerData ltd = new()
+        {
+            Id = reader.GetInt64(reader.GetOrdinal("id")),
+            UserId = reader.GetInt64(reader.GetOrdinal("user_id")),
+            ResourceURL = reader.GetString(reader.GetOrdinal("resource_url")),
+            LastUpdate = reader.GetDateTime(reader.GetOrdinal("last_update"))
+        };
+        return ltd;
+    }
+
+    public async Task<LinkTrackerData?> FindLinkTrackerByUrl(string url, long chatId)
+    {
+        var sql = @"
+SELECT * FROM links WHERE user_id = @id AND resource_url = @url;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("id", chatId);
+        cmd.Parameters.AddWithValue("url", url);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+        var dat = ReadData(reader);
+        await RecieveLinkTracker(dat);
+        return dat;
+    }
+
+    public async Task<IEnumerable<long>> GetChats()
+    {
+        var sql = @"
+SELECT tgid FROM chats;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        List<long> res = [];
+        while (await reader.ReadAsync())
+        {
+            res.Add(reader.GetInt64(0));
+        }
+        return res;
+    }
+
+    private readonly SemaphoreSlim semaphore = new(1);
+    public async Task<long> GetNextFreeId()
+    {
+        await semaphore.WaitAsync();
+        try
+        {
+            var sql1 = "SELECT value FROM config WHERE name = 'freeid';";
+            long old;
+            await using (var cmd = dataSource.CreateCommand(sql1))
+            {
+                old = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+            }
+            var sql2 = "UPDATE config SET value = @value WHERE name = 'freeid';";
+            await using (var cmd = dataSource.CreateCommand(sql2))
+            {
+                cmd.Parameters.AddWithValue("value", old + 1);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            return old;
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+
+    public async Task<IEnumerable<string>> GetTagsFromLink(long linkId)
+    {
+        return await RecieveLinkList(linkId, "tags", "tag_name");
+    }
+
+    public async Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
+    {
+        var sql = chatId != null ? "SELECT * FROM links WHERE user_id = @Id;" : "SELECT * FROM links;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        if (chatId != null)
+        {
+            cmd.Parameters.AddWithValue("Id", chatId);
+        }
+        await using var reader = await cmd.ExecuteReaderAsync();
+        List<LinkTrackerData> res = [];
+        while (await reader.ReadAsync())
+        {
+            var dat = ReadData(reader);
+            await RecieveLinkTracker(dat);
+            res.Add(dat);
+        }
+        return res;
+    }
+
+    public async Task RemoveTagFromLink(long linkId, string tag)
+    {
+        var sql = @"
+DELETE FROM tags WHERE tag = @tag AND link_id = @id;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("tag", tag);
+        cmd.Parameters.AddWithValue("id", linkId);
+        int x = await cmd.ExecuteNonQueryAsync();
+        if (x == 0)
+        {
+            throw new InvalidOperationException("Attempting to remove non-existence tag from link");
+        }
+    }
+
+    public async Task RemoveTrackingLink(LinkTrackerData link)
+    {
+        var sql = @"
+DELETE FROM links WHERE id = @Id;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("Id", link.Id);
+        int x = await cmd.ExecuteNonQueryAsync();
+        if (x == 0)
+        {
+            throw new InvalidOperationException("Attempting to remove non-existence link");
+        }
+    }
+
+    public async Task<bool> TryCreateChat(long chatId)
+    {
+        try
+        {
+            var sql = @"
+INSERT INTO chats(tgid) VALUES(@Id);";
+            await using var cmd = dataSource.CreateCommand(sql);
+            cmd.Parameters.AddWithValue("Id", chatId);
+            int x = await cmd.ExecuteNonQueryAsync();
+            return x == 1;
+        }
+        catch (NpgsqlException)
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> TryRemoveChat(long chatId)
+    {
+        var sql = @"
+DELETE FROM chats WHERE tgid = @id;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("id", chatId);
+        int x = await cmd.ExecuteNonQueryAsync();
+        return x > 0;
+    }
+
+    public async Task UpdateTrackingLink(LinkTrackerData link)
+    {
+        var sql = @"
+UPDATE links
+SET last_update = @lu, resource_url = @url
+WHERE id = @id";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("lu", link.LastUpdate);
+        cmd.Parameters.AddWithValue("url", link.ResourceURL);
+        cmd.Parameters.AddWithValue("id", link.Id);
+        int x = await cmd.ExecuteNonQueryAsync();
+        if (x == 0)
+        {
+            throw new InvalidOperationException("Attempting to change existence link");
+        }
+    }
+}

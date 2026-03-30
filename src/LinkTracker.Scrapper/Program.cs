@@ -14,6 +14,7 @@ using FluentMigrator.Runner;
 using FluentMigrator.Runner.Processors.Postgres;
 using LinkTracker.ORMChatsRepository;
 using LinkTracker.ScrapperBase.Models;
+using LinkTracker.SQLChatsRepository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,12 +49,14 @@ builder.Services.AddHttpClient<BotApiClient>()
 builder.Services.AddSingleton(provider => new DatabaseSettings { ConnectionString = provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseConnectionString });
 builder.Services.AddSingleton<InMemoryRepository>();
 builder.Services.AddSingleton<ORMChatsRepository>();
+builder.Services.AddSingleton<SQLChatsRepository>();
 builder.Services.AddSingleton<IChatsRepository>(provider =>
 {
     DatabaseType type = provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseType;
     return type switch
     {
         DatabaseType.ORM => provider.GetRequiredService<ORMChatsRepository>(),
+        DatabaseType.SQL => provider.GetRequiredService<SQLChatsRepository>(),
         _ => provider.GetRequiredService<InMemoryRepository>()
     };
 });
