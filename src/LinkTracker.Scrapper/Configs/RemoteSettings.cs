@@ -4,6 +4,7 @@ namespace LinkTracker.Scrapper.Configs;
 
 public enum DatabaseType
 {
+    InMemory,
     ORM,
     SQL
 }
@@ -22,8 +23,7 @@ public class RemoteSettings
     public int MaxThreads { get; set; } = 10;
 
     [Required]
-    public DatabaseType DatabaseType { get; set; } = DatabaseType.SQL;
+    public DatabaseType DatabaseType { get; set; } = DatabaseType.InMemory;
 
-    [Required]
     public string DatabaseConnectionString { get; set; } = string.Empty;
 }

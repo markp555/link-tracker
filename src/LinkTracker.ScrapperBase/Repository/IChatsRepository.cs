@@ -32,5 +32,9 @@ public interface IChatsRepository
 
     public Task<long> GetNextFreeId();
 
+    public Task AddTagToLink(long linkId, string tag);
+    public Task RemoveTagFromLink(long linkId, string tag);
+    public Task<IEnumerable<string>> GetTagsFromLink(long linkId);
+
     public Task<LinkTrackerData?> FindLinkTrackerByUrl(string url, long chatId);
 }

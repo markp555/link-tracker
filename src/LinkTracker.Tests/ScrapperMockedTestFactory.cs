@@ -29,6 +29,7 @@ public class ScrapperMockedTestFactory : WebApplicationFactory<Scrapper.TestEntr
             {
                 settings.BotEndpoint = "http://localhost/";
                 settings.UseGRPC = false; // HTTP 2.0 not supported
+                settings.DatabaseType = DatabaseType.InMemory;
             });
         });
     }

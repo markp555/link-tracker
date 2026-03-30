@@ -26,12 +26,20 @@ public class ScrapperLinksJob(
     {
         var links = await repository.GetTrackingLinks();
         SemaphoreSlim throttler = new(maxThreads);
+        // Optimizations for not scrapping the same link twice
+        Dictionary<string, Task<ScrapperResult>> oldRequests = [];
         var ScrapLink = async (string url) =>
         {
+            if (oldRequests.TryGetValue(url, out Task<ScrapperResult>? alreadyScrapping))
+            {
+                return await alreadyScrapping;
+            }
             await throttler.WaitAsync();
             try
             {
-                return await scrapper.Scrap(url, context.CancellationToken);
+                var task = scrapper.Scrap(url, context.CancellationToken);
+                oldRequests.Add(url, task);
+                return await task;
             }
             finally
             {

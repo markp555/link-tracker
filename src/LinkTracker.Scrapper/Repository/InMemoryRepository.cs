@@ -109,4 +109,42 @@ public class InMemoryRepository : IChatsRepository
             return Task.FromResult(res);
         }
     }
+
+    public async Task AddTagToLink(long linkId, string tag)
+    {
+        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId);
+        if (ltd == null)
+        {
+            return;
+        }
+        if (ltd.Tags.Contains(tag))
+        {
+            return;
+        }
+        ltd.Tags.Add(tag);
+    }
+
+    public async Task RemoveTagFromLink(long linkId, string tag)
+    {
+        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId);
+        if (ltd == null)
+        {
+            return;
+        }
+        if (!ltd.Tags.Contains(tag))
+        {
+            return;
+        }
+        ltd.Tags.Remove(tag);
+    }
+
+    public async Task<IEnumerable<string>> GetTagsFromLink(long linkId)
+    {
+        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId);
+        if (ltd == null)
+        {
+            return [];
+        }
+        return ltd.Tags.ToList();
+    }
 }

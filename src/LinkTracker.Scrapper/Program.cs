@@ -9,6 +9,11 @@ using LinkTracker.Scrapper.Middleware;
 using Microsoft.Extensions.Options;
 using LinkTracker.Scrapper.Services.GRPC;
 using LinkTracker.ScrapperBase.Repository;
+using LinkTracker.Scrapper.Configs;
+using FluentMigrator.Runner;
+using FluentMigrator.Runner.Processors.Postgres;
+using LinkTracker.ORMChatsRepository;
+using LinkTracker.ScrapperBase.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,7 +45,18 @@ builder.Services.AddHttpClient<BotApiClient>()
         c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<LinkTracker.Scrapper.Configs.RemoteSettings>>().Value.BotEndpoint);
     });
 
-builder.Services.AddSingleton<IChatsRepository, InMemoryRepository>();
+builder.Services.AddSingleton(provider => new DatabaseSettings { ConnectionString = provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseConnectionString });
+builder.Services.AddSingleton<InMemoryRepository>();
+builder.Services.AddSingleton<ORMChatsRepository>();
+builder.Services.AddSingleton<IChatsRepository>(provider =>
+{
+    DatabaseType type = provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseType;
+    return type switch
+    {
+        DatabaseType.ORM => provider.GetRequiredService<ORMChatsRepository>(),
+        _ => provider.GetRequiredService<InMemoryRepository>()
+    };
+});
 builder.Services.AddSingleton<IScrapper, CommonScrapper>();
 
 builder.Services.AddScoped<ScrapperLinksJob>();
@@ -84,10 +100,18 @@ builder.Services.AddGrpcClient<TelegramBot.TelegramBotClient>((provider, c) =>
 });
 builder.Services.AddSingleton<BotGRPCClient>();
 
+// add fluent migrations
+builder.Services.AddFluentMigratorCore()
+    .ConfigureRunner(rb => rb
+        .AddPostgres()
+        .ScanIn(typeof(Program).Assembly).For.Migrations()
+        .WithGlobalConnectionString(provider => provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseConnectionString))
+    .AddLogging(x => x.AddConsole());
+
 // automatically select the right service
 builder.Services.AddTransient<IBotApi>(sp =>
 {
-    var opts = sp.GetRequiredService<IOptions<LinkTracker.Scrapper.Configs.RemoteSettings>>().Value;
+    var opts = sp.GetRequiredService<IOptions<RemoteSettings>>().Value;
     if (opts.UseGRPC)
     {
         return sp.GetRequiredService<BotGRPCClient>();
@@ -117,5 +141,17 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.MapControllers();
 app.MapGrpcService<ScrapperGRPCService>();
+
+// apply migrations
+if (app.Services.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseType != DatabaseType.InMemory)
+{
+    using var scope = app.Services.CreateScope();
+    var migrateRunner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Running migrations...");
+    migrateRunner.MigrateUp();
+    logger.LogInformation("Migrations applied");
+}
+
 
 app.Run();

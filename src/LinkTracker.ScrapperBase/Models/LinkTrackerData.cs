@@ -14,7 +14,7 @@ public class LinkTrackerData : IEquatable<LinkTrackerData>
 
     public required long UserId { get; set; }
 
-    public required long Id { get; init; }
+    public required long Id { get; set; }
 
     public bool Equals(LinkTrackerData? other)
     {
