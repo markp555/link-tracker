@@ -27,21 +27,43 @@ public class DatabaseTests
     private ScrapperNoSchedulerFactory scrapper;
     private HttpClient client;
     private IScrapperClient sclient;
-    private Testcontainers.PostgreSql.PostgreSqlContainer postgreSqlContainer;
+    private string connectionString;
+    private PostgreSqlContainer? postgreSqlContainer = null;
 
     [OneTimeSetUp]
     public async Task StartHost()
     {
-        postgreSqlContainer = new PostgreSqlBuilder()
+        string? s = Environment.GetEnvironmentVariable("LOCAL_CI_POSTGRES_CONNECTION_STRING");
+        if (s == null)
+        {
+            postgreSqlContainer = new PostgreSqlBuilder()
             .WithImage("postgres:15-alpine") // Specify the Postgres version
             .WithDatabase("trackerdb")
             .WithUsername("postgres")
             .WithPassword("postgres")
             .Build();
-        await postgreSqlContainer.StartAsync();
+            await postgreSqlContainer.StartAsync();
+            connectionString = postgreSqlContainer.GetConnectionString();
+        }
+        else
+        {
+            // if running in gitlab CI
+            connectionString = s;
+            var sql = @"
+DO $$ DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END $$;
+";
+            await using var conn = new NpgsqlConnection(s);
+            await conn.ExecuteAsync(sql);
+        }
         scrapper = new();
         scrapper.DatabaseType = tp;
-        scrapper.ConnectionString = postgreSqlContainer.GetConnectionString();
+        scrapper.ConnectionString = connectionString;
         client = scrapper.CreateDefaultClient();
         sclient = new ScrapperClient(client);
     }
@@ -49,8 +71,11 @@ public class DatabaseTests
     [OneTimeTearDown]
     public async Task StopHost()
     {
-        await postgreSqlContainer.StopAsync();
-        await postgreSqlContainer.DisposeAsync();
+        if (postgreSqlContainer != null)
+        {
+            await postgreSqlContainer.StopAsync();
+            await postgreSqlContainer.DisposeAsync();
+        }
         client.Dispose();
         scrapper.Dispose();
     }
@@ -61,7 +86,7 @@ public class DatabaseTests
     [TestCase("filters")]
     public async Task MigrationTest_TableExist(string tableName)
     {
-        using NpgsqlConnection connection = new(postgreSqlContainer.GetConnectionString());
+        using NpgsqlConnection connection = new(connectionString);
         bool x = await connection.ExecuteScalarAsync<bool>($"SELECT to_regclass('public.{tableName}') IS NOT NULL;");
         Assert.That(x, Is.True);
     }

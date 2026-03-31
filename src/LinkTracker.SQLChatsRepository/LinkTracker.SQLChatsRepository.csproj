@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\LinkTracker.ScrapperBase\LinkTracker.ScrapperBase.csproj" />
+    <ProjectReference Include="..\LinkTracker.ScrapperBase\LinkTracker.ScrapperBase.csproj" />
   </ItemGroup>
 
 </Project>

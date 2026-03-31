@@ -32,3 +32,12 @@ module_test:
     - when: never
   script:
     - dotnet test
+  services:
+  - name: postgres:15
+    alias: postgres
+  variables:
+    POSTGRES_DB: trackerdb
+    POSTGRES_USER: gitlab
+    POSTGRES_PASSWORD: gitlab_password
+    LOCAL_CI_POSTGRES_CONNECTION_STRING: Host=postgres;Port=5432;Database=trackerdb;Username=gitlab;Password=gitlab_password
+  

@@ -26,10 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\LinkTracker.SQLChatsRepository\LinkTracker.SQLChatsRepository.csproj" />
     <ProjectReference Include="..\LinkTracker.Dto\LinkTracker.Dto.csproj" />
     <ProjectReference Include="..\LinkTracker.ORMChatsRepository\LinkTracker.ORMChatsRepository.csproj" />
     <ProjectReference Include="..\LinkTracker.ScrapperBase\LinkTracker.ScrapperBase.csproj" />
+    <ProjectReference Include="..\LinkTracker.SQLChatsRepository\LinkTracker.SQLChatsRepository.csproj" />
   </ItemGroup>
 
   <ItemGroup>
