@@ -1,12 +1,8 @@
 ﻿using Dapper;
 using LinkTracker.Bot;
-using LinkTracker.ORMChatsRepository;
 using LinkTracker.Scrapper.Configs;
-using LinkTracker.SQLChatsRepository;
 using Npgsql;
 using NUnit.Framework.Internal;
-using NUnit.Framework;
-using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using LinkTracker.ScrapperBase.Repository;
 using Testcontainers.PostgreSql;
