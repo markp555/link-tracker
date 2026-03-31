@@ -27,7 +27,7 @@ public class DatabaseTests
     private ScrapperNoSchedulerFactory scrapper;
     private HttpClient client;
     private IScrapperClient sclient;
-    private string connectionString;
+    private string connectionString = "";
     private PostgreSqlContainer? postgreSqlContainer = null;
 
     [OneTimeSetUp]
@@ -36,8 +36,7 @@ public class DatabaseTests
         string? s = Environment.GetEnvironmentVariable("LOCAL_CI_POSTGRES_CONNECTION_STRING");
         if (s == null)
         {
-            postgreSqlContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:15-alpine") // Specify the Postgres version
+            postgreSqlContainer = new PostgreSqlBuilder("postgres:15-alpine")
             .WithDatabase("trackerdb")
             .WithUsername("postgres")
             .WithPassword("postgres")
@@ -103,5 +102,49 @@ END $$;
         {
             Assert.That(usedType, Is.EqualTo(typeof(SQLChatsRepository.SQLChatsRepository)));
         }
+    }
+
+    [Test]
+    [Order(1)]
+    public async Task AddLinkTest()
+    {
+        await sclient.RegisterChatAsync(1);
+        await sclient.AddLinkAsync(1, new() { Tags = ["C++", "Python", "C#"], Filters = ["commit", "merge-request"], Link = "https://github.com/google/chromium" });
+
+        using NpgsqlConnection connection = new(connectionString);
+        var sql = "SELECT COUNT(*) FROM links;";
+        int c = await connection.ExecuteScalarAsync<int>(sql);
+
+        Assert.That(c, Is.EqualTo(1));
+    }
+
+    [Test]
+    [Order(3)]
+    public async Task RemoveLinkTest()
+    {
+        await sclient.RemoveLinkAsync(1, new() { Link = "https://github.com/google/chromium" });
+
+        using NpgsqlConnection connection = new(connectionString);
+        var sql = "SELECT COUNT(*) FROM links;";
+        int c = await connection.ExecuteScalarAsync<int>(sql);
+
+        Assert.That(c, Is.EqualTo(0));
+    }
+
+    [Test]
+    [Order(2)]
+    public async Task AddSameLinkTest()
+    {
+        try
+        {
+            await sclient.AddLinkAsync(1, new() { Tags = ["C#", "Backend"], Link = "https://github.com/google/chromium" });
+        }
+        catch (Exception) { }
+
+        using NpgsqlConnection connection = new(connectionString);
+        var sql = "SELECT COUNT(*) FROM links;";
+        int c = await connection.ExecuteScalarAsync<int>(sql);
+
+        Assert.That(c, Is.EqualTo(1));
     }
 }
