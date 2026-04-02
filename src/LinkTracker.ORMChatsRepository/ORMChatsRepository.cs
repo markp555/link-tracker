@@ -2,124 +2,95 @@
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
 using Npgsql;
-using System.Data;
+using LinqToDB;
+using LinqToDB.Async;
+using LinqToDB.Data;
+using System.ComponentModel.DataAnnotations;
 
 namespace LinkTracker.ORMChatsRepository;
 
 public class ORMChatsRepository : IChatsRepository
 {
     private readonly string _connectionString;
-    private NpgsqlConnection? _connection = null;
+    private LinqToDbConnection Connection => new(_connectionString);
 
     public ORMChatsRepository(DatabaseSettings settings)
     {
-        Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
         _connectionString = settings.ConnectionString;
     }
 
-    private NpgsqlConnection GetConnection()
+    public async Task AddTagToLink(long linkId, string tag)
     {
-        return new(_connectionString);
-    }
-
-    private NpgsqlConnection GetPersistentConnection()
-    {
-        _connection ??= GetConnection();
-        return _connection;
-    }
-
-    public Task AddTagToLink(long linkId, string tag)
-    {
-        var conn = GetPersistentConnection();
-        var sql = "INSERT INTO tags(tag_name, link_id) VALUES (@Tag, @Id);";
-        return conn.ExecuteAsync(sql, new { Tag = tag, Id = linkId });
+        await using var conn = Connection;
+        try
+        {
+            int x = await conn.Tags.InsertAsync(() => new Models.Tag { LinkId = linkId, Value = tag });
+            if (x == 0)
+            {
+                throw new InvalidOperationException("Error inserting tag into DB");
+            }
+        }
+        catch (PostgresException ex)
+        {
+            throw new InvalidOperationException("INVALID DATABASE REQUEST: " + ex.MessageText, ex);
+        }
     }
 
     public async Task AddTrackingLink(LinkTrackerData link)
     {
-        var conn = GetPersistentConnection();
-        await conn.OpenAsync();
+        await using var conn = Connection;
         await using var trans = await conn.BeginTransactionAsync();
-        var sql = @"
-INSERT INTO links(resource_url, last_update, user_id) 
-VALUES (@ResourceURL, @LastUpdate, @UserId)
-RETURNING Id;";
-        link.Id = await conn.ExecuteScalarAsync<long>(sql, link);
-        foreach (string tag in link.Tags)
+        try
         {
-            sql = @"
-INSERT INTO tags(tag_name, link_id)
-VALUES(@Tag, @Id);";
-            await conn.ExecuteAsync(sql, new { Tag = tag, link.Id });
+            long id = await conn.Links.InsertWithInt64IdentityAsync(() => new Models.Link { LastUpdate = link.LastUpdate, ResourceURL = link.ResourceURL, UserId = link.UserId });
+            await conn.Tags.BulkCopyAsync(link.Tags.Select(x => new Models.Tag { Value = x, LinkId = id }));
+            await conn.Filters.BulkCopyAsync(link.Filters.Select(x => new Models.Filter { Value = x, LinkId = id }));
+            await conn.CommitTransactionAsync();
+            link.Id = id;
         }
-        foreach (string filter in link.Filters)
+        catch (PostgresException ex)
         {
-            sql = @"
-INSERT INTO filters(filter, link_id)
-VALUES(@Filter, @Id);";
-            await conn.ExecuteAsync(sql, new { Filter = filter, link.Id });
+            await trans.RollbackAsync();
+            throw new InvalidOperationException("INVALID DATABASE REQUEST: " + ex.MessageText, ex);
         }
-        await trans.CommitAsync();
     }
 
     public async Task<bool> ChatExists(long chatId)
     {
-        using var conn = GetConnection();
-        var sql = @"
-SELECT COUNT(*) FROM chats WHERE tgid = @Id;";
-        int cnt = await conn.QueryFirstAsync<int>(sql, new { Id = chatId });
-        return cnt > 0;
-    }
-
-    private async Task<IEnumerable<string>> RecieveLinkList(long id, string listName, string fieldName)
-    {
-        using var conn = GetConnection();
-        var sql = $@"
-SELECT {fieldName} FROM {listName} WHERE link_id = @Id;";
-        return await conn.QueryAsync<string>(sql, new { Id = id });
-    }
-
-    private async Task RecieveLinkTracker(LinkTrackerData ltd)
-    {
-        long id = ltd.Id;
-        ltd.Filters = (await RecieveLinkList(id, "filters", "filter")).ToList();
-        ltd.Tags = (await RecieveLinkList(id, "tags", "tag_name")).ToList();
+        await using var conn = Connection;
+        return await conn.Chats.Where(x => x.TgID == chatId).AnyAsync();
     }
 
     public async Task<LinkTrackerData?> FindLinkTrackerByUrl(string url, long chatId)
     {
-        using var conn = GetConnection();
-        var sql = @"
-SELECT * FROM links WHERE user_id = @Id AND resource_url = @Url;";
-        LinkTrackerData? dat = await conn.QueryFirstOrDefaultAsync<LinkTrackerData>(sql, new { Id = chatId, Url = url });
-        if (dat == default)
+        await using var conn = Connection;
+        return await conn.Links.Where(x => x.UserId == chatId && x.ResourceURL == url).Select(x => new LinkTrackerData()
         {
-            return null;
-        }
-        await RecieveLinkTracker(dat);
-        return dat;
+            Id = x.Id,
+            LastUpdate = x.LastUpdate,
+            ResourceURL = x.ResourceURL,
+            Filters = x.Filters.Select(x => x.Value).ToList(),
+            UserId = x.UserId,
+            Tags = x.Tags.Select(x => x.Value).ToList()
+        }).FirstOrDefaultAsync();
     }
 
     public async Task<IEnumerable<long>> GetChats()
     {
-        var sql = @"
-SELECT tgid FROM chats;";
-        using var conn = GetConnection();
-        return await conn.QueryAsync<long>(sql);
+        await using var conn = Connection;
+        return await conn.Chats.Select(x => x.TgID).ToArrayAsync();
     }
 
     private readonly SemaphoreSlim semaphore = new(1);
     public async Task<long> GetNextFreeId()
     {
         await semaphore.WaitAsync();
-        using var conn = GetConnection();
         try
         {
-            var sql1 = "SELECT value FROM config WHERE name = 'freeid';";
-            long old = await conn.QueryFirstAsync<long>(sql1);
-            var sql2 = "UPDATE config SET value = @Value WHERE name = 'freeid';";
-            await conn.ExecuteAsync(sql2, new { Value = old + 1 });
+            await using var conn = Connection;
+            long old = await conn.Configuration.Where(x => x.Name == "freeid").Select(x => x.Value).FirstAsync();
+            await conn.Configuration.Where(x => x.Name == "freeid").Set(s => s.Value, s => s.Value + 1).UpdateAsync();
             return old;
         }
         finally
@@ -128,44 +99,31 @@ SELECT tgid FROM chats;";
         }
     }
 
-    public Task<IEnumerable<string>> GetTagsFromLink(long linkId)
+    public async Task<IEnumerable<string>> GetTagsFromLink(long linkId)
     {
-        return RecieveLinkList(linkId, "tags", "tag_name");
+        await using var conn = Connection;
+        return await conn.Tags.Where(x => x.LinkId == linkId).Select(x => x.Value).ToArrayAsync();
     }
 
     public async Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
     {
-        using var conn = GetConnection();
-        if (chatId != null)
+        await using var conn = Connection;
+        var query = chatId != null ? conn.Links.Where(x => x.UserId == chatId) : conn.Links;
+        return await query.Select(x => new LinkTrackerData()
         {
-            var sql = @"
-SELECT * FROM links WHERE user_id = @Id;";
-            var links = (await conn.QueryAsync<LinkTrackerData>(sql, new { Id = chatId })).ToList();
-            foreach (var link in links)
-            {
-                await RecieveLinkTracker(link);
-            }
-            return links;
-        }
-        else
-        {
-            var sql = @"
-SELECT * FROM links;";
-            var links = (await conn.QueryAsync<LinkTrackerData>(sql)).ToList();
-            foreach (var link in links)
-            {
-                await RecieveLinkTracker(link);
-            }
-            return links;
-        }
+            Id = x.Id,
+            LastUpdate = x.LastUpdate,
+            ResourceURL = x.ResourceURL,
+            Filters = x.Filters.Select(x => x.Value).ToList(),
+            UserId = x.UserId,
+            Tags = x.Tags.Select(x => x.Value).ToList()
+        }).ToArrayAsync();
     }
 
     public async Task RemoveTagFromLink(long linkId, string tag)
     {
-        var conn = GetPersistentConnection();
-        var sql = @"
-DELETE FROM tags WHERE tag = @Tag AND link_id = @Id;";
-        int x = await conn.ExecuteAsync(sql, new { Tag = tag, Id = linkId });
+        await using var conn = Connection;
+        int x = await conn.Tags.Where(x => x.LinkId == linkId && x.Value == tag).DeleteAsync();
         if (x == 0)
         {
             throw new InvalidOperationException("Attempting to remove non-existence tag from link");
@@ -174,10 +132,8 @@ DELETE FROM tags WHERE tag = @Tag AND link_id = @Id;";
 
     public async Task RemoveTrackingLink(LinkTrackerData link)
     {
-        var conn = GetPersistentConnection();
-        var sql = @"
-DELETE FROM links WHERE id = @Id;";
-        int x = await conn.ExecuteAsync(sql, new { link.Id });
+        await using var conn = Connection;
+        int x = await conn.Links.Where(x => x.Id == link.Id).DeleteAsync();
         if (x == 0)
         {
             throw new InvalidOperationException("Attempting to remove non-existence link");
@@ -186,15 +142,13 @@ DELETE FROM links WHERE id = @Id;";
 
     public async Task<bool> TryCreateChat(long chatId)
     {
-        var conn = GetPersistentConnection();
+        await using var conn = Connection;
         try
         {
-            var sql = @"
-INSERT INTO chats(tgid) VALUES(@Id);";
-            int x = await conn.ExecuteAsync(sql, new { Id = chatId });
-            return x == 1;
+            int x = await conn.Chats.InsertAsync(() => new Models.Chat() { TgID = chatId });
+            return x > 0;
         }
-        catch (NpgsqlException)
+        catch (PostgresException)
         {
             return false;
         }
@@ -202,24 +156,18 @@ INSERT INTO chats(tgid) VALUES(@Id);";
 
     public async Task<bool> TryRemoveChat(long chatId)
     {
-        var conn = GetPersistentConnection();
-        var sql = @"
-DELETE FROM chats WHERE tgid = @Id;";
-        int x = await conn.ExecuteAsync(sql, new { chatId });
+        await using var conn = Connection;
+        int x = await conn.Chats.Where(x => x.TgID == chatId).DeleteAsync();
         return x > 0;
     }
 
     public async Task UpdateTrackingLink(LinkTrackerData link)
     {
-        var conn = GetPersistentConnection();
-        var sql = @"
-UPDATE links
-SET last_update = @LastUpdate, resource_url = @ResourceURL
-WHERE id = @Id";
-        int x = await conn.ExecuteAsync(sql, link);
+        await using var conn = Connection;
+        int x = await conn.Links.Where(x => x.Id == link.Id).Set(x => x.LastUpdate, x => link.LastUpdate).UpdateAsync();
         if (x == 0)
         {
-            throw new InvalidOperationException("Attempting to change existence link");
+            throw new InvalidOperationException("Attempting to change unexistence link");
         }
     }
 }
