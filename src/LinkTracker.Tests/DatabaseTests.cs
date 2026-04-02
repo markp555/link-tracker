@@ -26,11 +26,10 @@ END $$;
     }
 }
 
-[TestFixtureSource("FixtureSource")]
+[TestFixture(DatabaseType.ORM)]
+[TestFixture(DatabaseType.SQL)]
 public class DatabaseTests
 {
-    static private readonly DatabaseType[] FixtureSource = [DatabaseType.ORM, DatabaseType.SQL];
-
     private readonly DatabaseType tp;
     public DatabaseTests(DatabaseType dbt)
     {
