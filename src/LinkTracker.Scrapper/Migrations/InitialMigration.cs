@@ -2,7 +2,7 @@ using FluentMigrator;
 
 namespace LinkTracker.Scrapper.Migrations;
 
-[Migration(20263003)]
+[Migration(20260330)]
 public class InitialMigration : Migration
 {
     public override void Up()
