@@ -30,7 +30,6 @@ public class InitialMigration : Migration
         Insert.IntoTable("config").Row(new { name = "freeid", value = 1 });
         Create.Index().OnTable("tags").OnColumn("link_id");
         Create.Index().OnTable("links").OnColumn("user_id");
-        // Create.Index().OnTable("chats").OnColumn("tgid");
         Create.Index().OnTable("filters").OnColumn("link_id");
     }
 
@@ -38,12 +37,11 @@ public class InitialMigration : Migration
     {
         Delete.Index().OnTable("tags").OnColumn("link_id");
         Delete.Index().OnTable("links").OnColumn("user_id");
-        // Create.Index().OnTable("chats").OnColumn("tgid");
         Delete.Index().OnTable("filters").OnColumn("link_id");
-        Delete.Table("chats");
-        Delete.Table("links");
-        Delete.Table("tags");
-        Delete.Table("filters");
         Delete.Table("config");
+        Delete.Table("filters");
+        Delete.Table("tags");
+        Delete.Table("links");
+        Delete.Table("chats");
     }
 }
