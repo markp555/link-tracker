@@ -139,11 +139,7 @@ public class DatabaseTests
     [Order(2)]
     public async Task AddSameLinkTest()
     {
-        try
-        {
-            await sclient.AddLinkAsync(1, new() { Tags = ["C#", "Backend"], Link = "https://github.com/google/chromium" });
-        }
-        catch (Exception) { }
+        Assert.ThrowsAsync<ApiException>(() => sclient.AddLinkAsync(1, new() { Tags = ["C#", "Backend"], Link = "https://github.com/google/chromium" }));
 
         using NpgsqlConnection connection = new(connectionString);
         var sql = "SELECT COUNT(*) FROM links;";
