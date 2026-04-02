@@ -31,14 +31,14 @@ public class ORMChatsRepository : IChatsRepository
 
     public Task AddTagToLink(long linkId, string tag)
     {
-        using var conn = GetConnection();
+        var conn = GetPersistentConnection();
         var sql = "INSERT INTO tags(tag_name, link_id) VALUES (@Tag, @Id);";
         return conn.ExecuteAsync(sql, new { Tag = tag, Id = linkId });
     }
 
     public async Task AddTrackingLink(LinkTrackerData link)
     {
-        using var conn = GetConnection();
+        var conn = GetPersistentConnection();
         await conn.OpenAsync();
         await using var trans = await conn.BeginTransactionAsync();
         var sql = @"
@@ -162,7 +162,7 @@ SELECT * FROM links;";
 
     public async Task RemoveTagFromLink(long linkId, string tag)
     {
-        using var conn = GetConnection();
+        var conn = GetPersistentConnection();
         var sql = @"
 DELETE FROM tags WHERE tag = @Tag AND link_id = @Id;";
         int x = await conn.ExecuteAsync(sql, new { Tag = tag, Id = linkId });
@@ -174,7 +174,7 @@ DELETE FROM tags WHERE tag = @Tag AND link_id = @Id;";
 
     public async Task RemoveTrackingLink(LinkTrackerData link)
     {
-        using var conn = GetConnection();
+        var conn = GetPersistentConnection();
         var sql = @"
 DELETE FROM links WHERE id = @Id;";
         int x = await conn.ExecuteAsync(sql, new { link.Id });
@@ -186,7 +186,7 @@ DELETE FROM links WHERE id = @Id;";
 
     public async Task<bool> TryCreateChat(long chatId)
     {
-        using var conn = GetConnection();
+        var conn = GetPersistentConnection();
         try
         {
             var sql = @"
@@ -202,7 +202,7 @@ INSERT INTO chats(tgid) VALUES(@Id);";
 
     public async Task<bool> TryRemoveChat(long chatId)
     {
-        using var conn = GetConnection();
+        var conn = GetPersistentConnection();
         var sql = @"
 DELETE FROM chats WHERE tgid = @Id;";
         int x = await conn.ExecuteAsync(sql, new { chatId });
@@ -211,7 +211,7 @@ DELETE FROM chats WHERE tgid = @Id;";
 
     public async Task UpdateTrackingLink(LinkTrackerData link)
     {
-        using var conn = GetConnection();
+        var conn = GetPersistentConnection();
         var sql = @"
 UPDATE links
 SET last_update = @LastUpdate, resource_url = @ResourceURL

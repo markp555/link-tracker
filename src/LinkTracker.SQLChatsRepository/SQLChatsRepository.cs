@@ -24,7 +24,7 @@ public class SQLChatsRepository(DatabaseSettings settings) : IChatsRepository
         }
         catch (PostgresException ex)
         {
-            throw new InvalidOperationException("INVALID DATABASE REQUEST: " + ex.MessageText);
+            throw new InvalidOperationException("INVALID DATABASE REQUEST: " + ex.MessageText, ex);
         }
     }
 
@@ -82,7 +82,7 @@ VALUES(@value, @id);";
         catch (PostgresException ex)
         {
             await trans.RollbackAsync();
-            throw new InvalidOperationException("INVALID DATABASE REQUEST: " + ex.MessageText);
+            throw new InvalidOperationException("INVALID DATABASE REQUEST: " + ex.MessageText, ex);
         }
     }
 
@@ -96,10 +96,28 @@ SELECT COUNT(*) FROM chats WHERE tgid = @id;";
         return cnt > 0;
     }
 
-    private async Task<List<string>> RecieveLinkList(long id, string listName, string fieldName)
+    enum LinkLists
     {
+        TagList,
+        FilterList
+    }
+
+    private async Task<List<string>> RecieveLinkList(long id, LinkLists list)
+    {
+        string fieldName = list switch
+        {
+            LinkLists.TagList => "tag_name",
+            LinkLists.FilterList => "filter",
+            _ => throw new ArgumentException("Invalid list type", nameof(list))
+        };
+        string tableName = list switch
+        {
+            LinkLists.TagList => "tags",
+            LinkLists.FilterList => "filters",
+            _ => throw new ArgumentException("Invalid list type", nameof(list))
+        };
         var sql = $@"
-SELECT {fieldName} FROM {listName} WHERE link_id = @id;";
+SELECT {fieldName} FROM {tableName} WHERE link_id = @id;";
         await using var cmd = dataSource.CreateCommand(sql);
         cmd.Parameters.AddWithValue("id", id);
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -114,8 +132,8 @@ SELECT {fieldName} FROM {listName} WHERE link_id = @id;";
     private async Task RecieveLinkTracker(LinkTrackerData ltd)
     {
         long id = ltd.Id;
-        ltd.Filters = await RecieveLinkList(id, "filters", "filter");
-        ltd.Tags = await RecieveLinkList(id, "tags", "tag_name");
+        ltd.Filters = await RecieveLinkList(id, LinkLists.FilterList);
+        ltd.Tags = await RecieveLinkList(id, LinkLists.TagList);
     }
 
     private LinkTrackerData ReadData(NpgsqlDataReader reader)
@@ -189,7 +207,7 @@ SELECT tgid FROM chats;";
 
     public async Task<IEnumerable<string>> GetTagsFromLink(long linkId)
     {
-        return await RecieveLinkList(linkId, "tags", "tag_name");
+        return await RecieveLinkList(linkId, LinkLists.TagList);
     }
 
     public async Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
