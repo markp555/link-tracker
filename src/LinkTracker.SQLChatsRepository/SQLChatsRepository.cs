@@ -14,10 +14,17 @@ public class SQLChatsRepository(DatabaseSettings settings) : IChatsRepository
         await using var cmd = dataSource.CreateCommand(sql);
         cmd.Parameters.AddWithValue("tag", tag);
         cmd.Parameters.AddWithValue("id", linkId);
-        int x = await cmd.ExecuteNonQueryAsync();
-        if (x <= 0)
+        try
         {
-            throw new InvalidOperationException("Adding tag failed");
+            int x = await cmd.ExecuteNonQueryAsync();
+            if (x <= 0)
+            {
+                throw new InvalidOperationException("Adding tag failed");
+            }
+        }
+        catch (PostgresException ex)
+        {
+            throw new InvalidOperationException("INVALID DATABASE REQUEST: " + ex.MessageText);
         }
     }
 
@@ -26,49 +33,57 @@ public class SQLChatsRepository(DatabaseSettings settings) : IChatsRepository
         await using var conn = dataSource.CreateConnection();
         await conn.OpenAsync();
         await using var trans = await conn.BeginTransactionAsync();
-        var sql = @"
+        try
+        {
+            var sql = @"
 INSERT INTO links(resource_url, last_update, user_id) 
 VALUES (@ResourceURL, @LastUpdate, @UserId)
 RETURNING Id;";
-        await using (var cmd = conn.CreateCommand())
-        {
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("ResourceURL", link.ResourceURL);
-            cmd.Parameters.AddWithValue("LastUpdate", link.LastUpdate);
-            cmd.Parameters.AddWithValue("UserId", link.UserId);
-            link.Id = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-        }
-        foreach (string tag in link.Tags)
-        {
-            sql = @"
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                cmd.Parameters.AddWithValue("ResourceURL", link.ResourceURL);
+                cmd.Parameters.AddWithValue("LastUpdate", link.LastUpdate);
+                cmd.Parameters.AddWithValue("UserId", link.UserId);
+                link.Id = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+            }
+            foreach (string tag in link.Tags)
+            {
+                sql = @"
 INSERT INTO tags(tag_name, link_id)
 VALUES(@value, @id);";
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("value", tag);
-            cmd.Parameters.AddWithValue("id", link.Id);
-            int x = await cmd.ExecuteNonQueryAsync();
-            if (x == 0)
-            {
-                throw new InvalidOperationException("Error inserting link into database");
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                cmd.Parameters.AddWithValue("value", tag);
+                cmd.Parameters.AddWithValue("id", link.Id);
+                int x = await cmd.ExecuteNonQueryAsync();
+                if (x == 0)
+                {
+                    throw new InvalidOperationException("Error inserting link into database");
+                }
             }
-        }
-        foreach (string filter in link.Filters)
-        {
-            sql = @"
+            foreach (string filter in link.Filters)
+            {
+                sql = @"
 INSERT INTO filters(filter, link_id)
 VALUES(@value, @id);";
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("value", filter);
-            cmd.Parameters.AddWithValue("id", link.Id);
-            int x = await cmd.ExecuteNonQueryAsync();
-            if (x == 0)
-            {
-                throw new InvalidOperationException("Error inserting link into database");
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                cmd.Parameters.AddWithValue("value", filter);
+                cmd.Parameters.AddWithValue("id", link.Id);
+                int x = await cmd.ExecuteNonQueryAsync();
+                if (x == 0)
+                {
+                    throw new InvalidOperationException("Error inserting link into database");
+                }
             }
+            await trans.CommitAsync();
         }
-        await trans.CommitAsync();
+        catch (PostgresException ex)
+        {
+            await trans.RollbackAsync();
+            throw new InvalidOperationException("INVALID DATABASE REQUEST: " + ex.MessageText);
+        }
     }
 
     public async Task<bool> ChatExists(long chatId)
@@ -199,7 +214,7 @@ SELECT tgid FROM chats;";
     public async Task RemoveTagFromLink(long linkId, string tag)
     {
         var sql = @"
-DELETE FROM tags WHERE tag = @tag AND link_id = @id;";
+DELETE FROM tags WHERE tag_name = @tag AND link_id = @id;";
         await using var cmd = dataSource.CreateCommand(sql);
         cmd.Parameters.AddWithValue("tag", tag);
         cmd.Parameters.AddWithValue("id", linkId);

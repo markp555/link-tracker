@@ -13,6 +13,14 @@ public class InMemoryRepository : IChatsRepository
     {
         lock (_links)
         {
+            if (!_chats.Contains(link.UserId))
+            {
+                throw new InvalidOperationException("Adding link to non-existence chat");
+            }
+            if (_links.Find(x => x.ResourceURL == link.ResourceURL && x.UserId == link.UserId) != null)
+            {
+                throw new InvalidOperationException("Adding same link twice");
+            }
             _links.Add(link);
             return Task.CompletedTask;
         }
@@ -112,28 +120,20 @@ public class InMemoryRepository : IChatsRepository
 
     public async Task AddTagToLink(long linkId, string tag)
     {
-        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId);
-        if (ltd == null)
-        {
-            return;
-        }
+        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId) ?? throw new InvalidOperationException("adding tag to non-existence chat");
         if (ltd.Tags.Contains(tag))
         {
-            return;
+            throw new InvalidOperationException("adding same tag twice");
         }
         ltd.Tags.Add(tag);
     }
 
     public async Task RemoveTagFromLink(long linkId, string tag)
     {
-        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId);
-        if (ltd == null)
-        {
-            return;
-        }
+        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId) ?? throw new InvalidOperationException("removing non-existence tag");
         if (!ltd.Tags.Contains(tag))
         {
-            return;
+            throw new InvalidOperationException("removing non-existence tag");
         }
         ltd.Tags.Remove(tag);
     }
