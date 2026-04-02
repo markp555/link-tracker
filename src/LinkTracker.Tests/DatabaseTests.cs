@@ -9,6 +9,23 @@ using Testcontainers.PostgreSql;
 
 namespace LinkTracker.Tests;
 
+public static class DbConnectionExtesnions
+{
+    public static Task ClearDatabase(this NpgsqlConnection conn)
+    {
+        var sql = @"
+DO $$ DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END $$;
+";
+        return conn.ExecuteAsync(sql);
+    }
+}
+
 [TestFixtureSource("FixtureSource")]
 public class DatabaseTests
 {
@@ -44,17 +61,8 @@ public class DatabaseTests
         {
             // if running in gitlab CI
             connectionString = s;
-            var sql = @"
-DO $$ DECLARE
-    r RECORD;
-BEGIN
-    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-    END LOOP;
-END $$;
-";
             await using var conn = new NpgsqlConnection(s);
-            await conn.ExecuteAsync(sql);
+            await conn.ClearDatabase();
         }
         scrapper = new();
         scrapper.DatabaseType = tp;
