@@ -1,5 +1,4 @@
-﻿using LinkTracker.Bot;
-using LinkTracker.Bot.Repository;
+﻿using LinkTracker.Bot.Repository;
 using LinkTracker.Bot.Services;
 using Microsoft.AspNetCore.Hosting;
 using NSubstitute;

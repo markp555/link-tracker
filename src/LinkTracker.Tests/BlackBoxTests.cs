@@ -1,15 +1,11 @@
-﻿using LinkTracker.Bot.Services;
-using LinkTracker.Scrapper;
-using LinkTracker.Scrapper.Models;
+﻿using LinkTracker.Scrapper;
 using LinkTracker.Scrapper.Services;
 using LinkTracker.UnitTests;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Quartz;
 using RichardSzalay.MockHttp;
-using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
-using System.Runtime.CompilerServices;
 
 namespace LinkTracker.Tests;
 

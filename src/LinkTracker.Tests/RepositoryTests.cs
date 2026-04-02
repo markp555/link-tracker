@@ -3,11 +3,9 @@ using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
 using Npgsql;
 using Testcontainers.PostgreSql;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
 using LinkTracker.Scrapper.Migrations;
 
 namespace LinkTracker.Tests;

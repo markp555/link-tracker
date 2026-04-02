@@ -1,8 +1,4 @@
 using LinkTracker.Dto;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace LinkTracker.Bot;
 

@@ -1,11 +1,9 @@
-﻿using Dapper;
-using LinkTracker.ScrapperBase.Models;
+﻿using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
 using Npgsql;
 using LinqToDB;
 using LinqToDB.Async;
 using LinqToDB.Data;
-using System.ComponentModel.DataAnnotations;
 
 namespace LinkTracker.ORMChatsRepository;
 

@@ -1,7 +1,4 @@
-﻿using LinkTracker.Bot.Services;
-using LinkTracker.UnitTests;
-using NSubstitute;
-using NSubstitute.ClearExtensions;
+﻿using LinkTracker.UnitTests;
 using NUnit.Framework.Internal;
 
 namespace LinkTracker.Tests;

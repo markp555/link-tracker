@@ -1,10 +1,7 @@
 using Grpc.Core;
-using LinkTracker.Dto;
 using LinkTracker.Scrapper.Models;
-using LinkTracker.Scrapper.Repository;
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
-using Microsoft.Extensions.Logging;
 
 namespace LinkTracker.Scrapper.Services.GRPC;
 

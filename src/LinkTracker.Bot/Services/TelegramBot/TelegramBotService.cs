@@ -1,8 +1,6 @@
-using LinkTracker.Bot.Configs;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
-using Microsoft.Extensions.Options;
 using Telegram.Bot.Polling;
 
 namespace LinkTracker.Bot.Services.TelegramBot;

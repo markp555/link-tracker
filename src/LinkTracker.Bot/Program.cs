@@ -4,13 +4,11 @@ using LinkTracker.Bot.Services;
 using LinkTracker.Bot.Services.Dispatchers;
 using LinkTracker.Bot.Services.TelegramBot;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Http;
 using Telegram.Bot;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LinkTracker.Bot;
 using LinkTracker.Scrapper.Configs;
-using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 

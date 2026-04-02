@@ -1,5 +1,4 @@
 ﻿using LinkTracker.Scrapper.Configs;
-using LinkTracker.Scrapper.Services;
 using LinkTracker.ScrapperBase.Repository;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

@@ -1,5 +1,4 @@
-﻿using LinkTracker.ScrapperBase.Models;
-using LinqToDB.Mapping;
+﻿using LinqToDB.Mapping;
 
 namespace LinkTracker.ORMChatsRepository.Models;
 
