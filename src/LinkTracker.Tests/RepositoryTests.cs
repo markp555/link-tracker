@@ -142,7 +142,7 @@ public class RepositoryTests(Type suiteType)
         var db = suite.Repository;
         bool ok = await db.TryCreateChat(1);
         Assert.That(ok, Is.True);
-        Assert.That(await db.GetChats(), Has.All.EqualTo(1) & Has.Count.EqualTo(1));
+        Assert.That((await db.GetChats()).ToList(), Has.All.EqualTo(1) & Has.Count.EqualTo(1));
     }
 
     [Test]
@@ -152,7 +152,7 @@ public class RepositoryTests(Type suiteType)
         await db.TryCreateChat(1);
         bool ok = await db.TryCreateChat(1);
         Assert.That(ok, Is.False);
-        Assert.That(await db.GetChats(), Has.All.EqualTo(1) & Has.Count.EqualTo(1));
+        Assert.That((await db.GetChats()).ToList(), Has.All.EqualTo(1) & Has.Count.EqualTo(1));
     }
 
     [Test]
