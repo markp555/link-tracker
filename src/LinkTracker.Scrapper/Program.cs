@@ -68,9 +68,9 @@ builder.Services.AddScoped<BatchScrapperJob>();
 
 builder.Services.AddQuartz(q =>
 {
-    JobKey job = new(nameof(ScrapperLinksJob));
+    JobKey job = new(nameof(BatchScrapperJob));
 
-    q.AddJob<ScrapperLinksJob>(opts => opts.WithIdentity(job));
+    q.AddJob<BatchScrapperJob>(opts => opts.WithIdentity(job));
 
     q.AddTrigger(opts => opts
         .ForJob(job)

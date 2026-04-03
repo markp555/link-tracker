@@ -18,6 +18,10 @@ public class CommonBatchScrapper : IBatchScrapper
     public Task BatchScrap(IEnumerable<string> urls, CancellationToken cancellationToken)
     {
         var queue = new List<string>[_scrappers.Count];
+        for (int i = 0; i < _scrappers.Count; i++)
+        {
+            queue[i] = [];
+        }
         foreach (var url in urls)
         {
             bool ok = false;
@@ -40,7 +44,7 @@ public class CommonBatchScrapper : IBatchScrapper
 
     public bool CanProceedLink(string url)
     {
-        foreach (IScrapper scrapper in _scrappers)
+        foreach (IBatchScrapper scrapper in _scrappers)
         {
             if (scrapper.CanProceedLink(url))
             {

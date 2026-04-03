@@ -51,14 +51,17 @@ public class BatchScrapperJob(
         {
             urls.Add(link.ResourceURL);
         }
+        logger.LogInformation("Started scrapping");
         try
         {
             await _scrapper.BatchScrap(urls, cancellationToken);
+            logger.LogInformation("Sending updates");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error scrapping links, trying to send updates");
         }
         await Task.WhenAll(links.Select(x => ProceedLink(x, cancellationToken)));
+        logger.LogInformation("Sended updates");
     }
 }
