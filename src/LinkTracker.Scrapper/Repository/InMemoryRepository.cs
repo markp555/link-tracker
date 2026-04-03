@@ -1,5 +1,6 @@
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LinkTracker.Scrapper.Repository;
 
@@ -146,5 +147,60 @@ public class InMemoryRepository : IChatsRepository
             return [];
         }
         return ltd.Tags.ToList();
+    }
+
+    private record LinkInformation(DateTime LastUpdate, List<(DateTime DateTime, string Content)> Updates)
+    {
+        public DateTime LastUpdate { get; set; } = LastUpdate;
+    }
+    private Dictionary<string, LinkInformation> linkUpdates = [];
+
+    public Task<DateTime> GetLastRegisteredLinkUpdate(string url)
+    {
+        lock (linkUpdates)
+        {
+            if (!linkUpdates.TryGetValue(url, out LinkInformation? li))
+            {
+                return Task.FromResult(DateTime.MinValue);
+            }
+            return Task.FromResult(li.LastUpdate);
+        }
+    }
+
+    public Task AddLinkUpdate(string url, DateTime created, string content)
+    {
+        lock (linkUpdates)
+        {
+            if (!linkUpdates.TryGetValue(url, out var x))
+            {
+                x = new LinkInformation(created, []);
+                linkUpdates.Add(url, x);
+            }
+            x.LastUpdate = created;
+            x.Updates.Add((created, content));
+            return Task.CompletedTask;
+        }
+    }
+
+    public Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit)
+    {
+        lock (linkUpdates)
+        {
+            if (!linkUpdates.TryGetValue(url, out var x))
+            {
+                return Task.FromResult(new List<string>() as IEnumerable<string>);
+            }
+            var lst = x.Updates.Where(x => x.DateTime >= from).OrderByDescending(x => x.DateTime).Take(limit).Select(x => x.Content);
+            return Task.FromResult(lst.ToList().AsEnumerable());
+        }
+    }
+
+    public Task ClearLinkUpdates()
+    {
+        lock (linkUpdates)
+        {
+            linkUpdates.Clear();
+            return Task.CompletedTask;
+        }
     }
 }

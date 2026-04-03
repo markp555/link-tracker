@@ -117,6 +117,8 @@ public class RepositoryTests(Type suiteType)
         {
             await db.TryRemoveChat(item);
         }
+        // remove link updates
+        await db.ClearLinkUpdates();
     }
 
     [OneTimeSetUp]
@@ -278,5 +280,33 @@ public class RepositoryTests(Type suiteType)
         await db.UpdateTrackingLink(link);
         var link2 = await db.FindLinkTrackerByUrl("http://google.com", 1);
         Assert.That(link2?.LastUpdate, Is.GreaterThan(dt1));
+    }
+
+    [Test]
+    public async Task Updates_Test()
+    {
+        var db = suite.Repository;
+        string url = "http://google.com";
+        var res = await db.GetLastRegisteredLinkUpdate(url);
+        Assert.That(res, Is.EqualTo(DateTime.MinValue));
+        DateTime today = DateTime.Today;
+        DateTime yesterday = today - TimeSpan.FromDays(1);
+        DateTime veryold = today - TimeSpan.FromDays(365);
+        await db.AddLinkUpdate(url, veryold, "1");
+        res = await db.GetLastRegisteredLinkUpdate(url);
+        Assert.That(res, Is.EqualTo(veryold));
+        await db.AddLinkUpdate(url, veryold, "2");
+        var lst = await db.FetchLinkUpdates(url, veryold, 3);
+        Assert.That(lst.ToList(), Has.Count.EqualTo(2) & Has.One.EqualTo("1") & Has.One.EqualTo("2"));
+        lst = await db.FetchLinkUpdates(url, veryold, 1);
+        Assert.That(lst.ToList(), Has.Count.EqualTo(1));
+        await db.AddLinkUpdate(url, yesterday, "3");
+        res = await db.GetLastRegisteredLinkUpdate(url);
+        Assert.That(res, Is.EqualTo(yesterday));
+        lst = await db.FetchLinkUpdates(url, veryold, 2);
+        Assert.That(lst.Count(), Is.EqualTo(2));
+        Assert.That(lst.First(), Is.EqualTo("3"));
+        lst = await db.FetchLinkUpdates(url, yesterday, 2);
+        Assert.That(lst.Count(), Is.EqualTo(1));
     }
 }

@@ -15,4 +15,6 @@ internal class LinqToDbConnection(string connectionString) : DataConnection(new 
     public ITable<Link> Links => this.GetTable<Link>();
 
     public ITable<Chat> Chats => this.GetTable<Chat>();
+
+    public ITable<LinkUpdate> Updates => this.GetTable<LinkUpdate>();
 }

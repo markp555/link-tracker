@@ -37,4 +37,13 @@ public interface IChatsRepository
     public Task<IEnumerable<string>> GetTagsFromLink(long linkId);
 
     public Task<LinkTrackerData?> FindLinkTrackerByUrl(string url, long chatId);
+
+    public Task<DateTime> GetLastRegisteredLinkUpdate(string url);
+
+    public Task AddLinkUpdate(string url, DateTime created, string content);
+
+    // Return at most limit updates description from most recently to most old but not older than from
+    public Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit);
+
+    public Task ClearLinkUpdates();
 }

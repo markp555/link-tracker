@@ -168,4 +168,32 @@ public class ORMChatsRepository : IChatsRepository
             throw new InvalidOperationException("Attempting to change unexistence link");
         }
     }
+
+    public async Task<DateTime> GetLastRegisteredLinkUpdate(string url)
+    {
+        await using var conn = Connection;
+        return await conn.Updates.Where(x => x.Url == url).Select(x => (DateTime?)x.DateTime).MaxAsync() ?? DateTime.MinValue;
+    }
+
+    public async Task AddLinkUpdate(string url, DateTime created, string content)
+    {
+        await using var conn = Connection;
+        int x = await conn.Updates.InsertAsync(() => new Models.LinkUpdate { DateTime = created, Url = url, Value = content });
+        if (x == 0)
+        {
+            throw new InvalidOperationException("Error adding link update to database");
+        }
+    }
+
+    public async Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit)
+    {
+        await using var conn = Connection;
+        return await conn.Updates.Where(x => x.Url == url && x.DateTime >= from).ThenOrByDescending(x => x.DateTime).Take(limit).Select(x => x.Value).ToArrayAsync();
+    }
+
+    public async Task ClearLinkUpdates()
+    {
+        await using var conn = Connection;
+        await conn.Updates.DeleteAsync();
+    }
 }

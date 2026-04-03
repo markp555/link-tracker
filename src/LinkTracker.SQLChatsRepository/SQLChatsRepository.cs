@@ -299,4 +299,54 @@ WHERE id = @id";
             throw new InvalidOperationException("Attempting to change existence link");
         }
     }
+
+    public async Task<DateTime> GetLastRegisteredLinkUpdate(string url)
+    {
+        var sql = "SELECT MAX(datetime) FROM link_updates WHERE url = @url;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("url", url);
+        var x = await cmd.ExecuteScalarAsync();
+        if (x == null || x == DBNull.Value)
+        {
+            return DateTime.MinValue;
+        }
+        return Convert.ToDateTime(x);
+    }
+
+    public async Task AddLinkUpdate(string url, DateTime created, string content)
+    {
+        var sql = "INSERT INTO link_updates(url, datetime, content) VALUES (@url, @dt, @desc);";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("url", url);
+        cmd.Parameters.AddWithValue("dt", created);
+        cmd.Parameters.AddWithValue("desc", content);
+        int x = await cmd.ExecuteNonQueryAsync();
+        if (x == 0)
+        {
+            throw new InvalidOperationException("Error adding update");
+        }
+    }
+
+    public async Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit)
+    {
+        var sql = "SELECT content FROM link_updates WHERE url = @url AND datetime >= @from ORDER BY datetime DESC LIMIT @lim;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        cmd.Parameters.AddWithValue("url", url);
+        cmd.Parameters.AddWithValue("lim", limit);
+        cmd.Parameters.AddWithValue("from", from);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        List<string> res = [];
+        while (await reader.ReadAsync())
+        {
+            res.Add(reader.GetString(0));
+        }
+        return res;
+    }
+
+    public async Task ClearLinkUpdates()
+    {
+        var sql = "DELETE FROM link_updates;";
+        await using var cmd = dataSource.CreateCommand(sql);
+        await cmd.ExecuteNonQueryAsync();
+    }
 }
