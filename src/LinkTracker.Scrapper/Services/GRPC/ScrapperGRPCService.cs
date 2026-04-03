@@ -64,7 +64,8 @@ public class ScrapperGRPCService(IChatsRepository repository, ILogger<ScrapperGR
             UserId = request.ChatId,
             ResourceURL = request.Url,
             Tags = request.Tags.ToList(),
-            Filters = request.Filters.ToList()
+            Filters = request.Filters.ToList(),
+            LastUpdate = DateTime.Now
         };
 
         await repository.AddTrackingLink(res);

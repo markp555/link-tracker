@@ -193,7 +193,8 @@ public class ScrapperController(IChatsRepository repository, ILogger<ScrapperCon
             UserId = tgChatId,
             ResourceURL = request.Link,
             Tags = request.Tags ?? [],
-            Filters = request.Filters ?? []
+            Filters = request.Filters ?? [],
+            LastUpdate = DateTime.Now
         };
 
         await repository.AddTrackingLink(res);
