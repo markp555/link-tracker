@@ -6,7 +6,7 @@ namespace LinkTracker.ORMChatsRepository.Models;
 public class LinkUpdate
 {
     [Column("id"), PrimaryKey, Identity]
-    public long Id { get; set; }
+    public int Id { get; set; }
 
     [Column("url")]
     public string Url { get; set; } = "";
