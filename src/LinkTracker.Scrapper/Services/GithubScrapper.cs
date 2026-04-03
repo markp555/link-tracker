@@ -1,15 +1,17 @@
 
 using LinkTracker.Scrapper.Configs;
+using LinkTracker.ScrapperBase.Repository;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace LinkTracker.Scrapper.Services;
 
-public partial class GithubScrapper : IScrapper
+public partial class GithubScrapper : IScrapper, IBatchScrapper
 {
     private readonly HttpClient _httpClient;
     private static readonly Regex RepoRegex = CreateRepoRegex();
+    private readonly IChatsRepository _repository;
 
     public class GitHubRepo
     {
@@ -31,12 +33,13 @@ public partial class GithubScrapper : IScrapper
         public int StargazersCount { get; set; }
     }
 
-    public GithubScrapper(HttpClient client, IOptions<GitHub> options)
+    public GithubScrapper(HttpClient client, IOptions<GitHub> options, IChatsRepository repository)
     {
         _httpClient = client;
         client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
         client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36");
         client.DefaultRequestHeaders.Authorization = new("Bearer", options.Value.Token);
+        _repository = repository;
     }
 
     public bool CanProceedLink(string url)
@@ -66,4 +69,16 @@ public partial class GithubScrapper : IScrapper
 
     [GeneratedRegex(@"^https://github\.com/([^/]+)/([^/]+?)(?:/|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "ru-RU")]
     private static partial Regex CreateRepoRegex();
+
+    public async Task BatchScrap(IEnumerable<string> urls, CancellationToken cancellationToken)
+    {
+        foreach (var item in urls)
+        {
+            var res = await Scrap(item, cancellationToken);
+            if (res.LastUpdateDate > await _repository.GetLastRegisteredLinkUpdate(item))
+            {
+                await _repository.AddLinkUpdate(item, res.LastUpdateDate, res.LastUpdateDescription);
+            }
+        }
+    }
 }

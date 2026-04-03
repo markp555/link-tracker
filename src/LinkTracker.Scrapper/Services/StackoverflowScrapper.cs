@@ -1,4 +1,5 @@
 using LinkTracker.Scrapper.Configs;
+using LinkTracker.ScrapperBase.Repository;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
@@ -6,12 +7,13 @@ using System.Text.RegularExpressions;
 
 namespace LinkTracker.Scrapper.Services;
 
-public partial class StackoverflowScrapper : IScrapper
+public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
 {
     private readonly HttpClient _httpClient;
     private string apiToken;
+    private readonly IChatsRepository _repository;
 
-    public StackoverflowScrapper(HttpClient client, IOptions<StackOverflow> options)
+    public StackoverflowScrapper(HttpClient client, IOptions<StackOverflow> options, IChatsRepository repository)
     {
         _httpClient = client;
         var headers = client.DefaultRequestHeaders.Accept;
@@ -19,6 +21,7 @@ public partial class StackoverflowScrapper : IScrapper
         headers.Add(MediaTypeWithQualityHeaderValue.Parse("application/json"));
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36");
         apiToken = options.Value.Token;
+        _repository = repository;
     }
 
     // https://stackoverflow.com/questions/77556000/title... -> 77556000
@@ -97,4 +100,16 @@ public partial class StackoverflowScrapper : IScrapper
 
     [GeneratedRegex(@"^https://stackoverflow\.com/questions/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "ru-RU")]
     private static partial Regex CreateUrlRegex();
+
+    public async Task BatchScrap(IEnumerable<string> urls, CancellationToken cancellationToken)
+    {
+        foreach (var item in urls)
+        {
+            var res = await Scrap(item, cancellationToken);
+            if (res.LastUpdateDate > await _repository.GetLastRegisteredLinkUpdate(item))
+            {
+                await _repository.AddLinkUpdate(item, res.LastUpdateDate, res.LastUpdateDescription);
+            }
+        }
+    }
 }

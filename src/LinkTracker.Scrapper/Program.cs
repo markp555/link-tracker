@@ -13,6 +13,7 @@ using FluentMigrator.Runner;
 using LinkTracker.ORMChatsRepository;
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.SQLChatsRepository;
+using LinkTracker.Scrapper.Migrations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,7 +61,10 @@ builder.Services.AddSingleton<IChatsRepository>(provider =>
 });
 builder.Services.AddSingleton<IScrapper, CommonScrapper>();
 
+builder.Services.AddSingleton<IMessageSender, TelegramMessageSender>();
+
 builder.Services.AddScoped<ScrapperLinksJob>();
+builder.Services.AddScoped<BatchScrapperJob>();
 
 builder.Services.AddQuartz(q =>
 {
@@ -97,6 +101,15 @@ builder.Services.AddHttpClient<GithubScrapper>()
         c.Timeout = TimeSpan.FromSeconds(3);
     });
 
+// add batch scrapper
+builder.Services.AddSingleton<IBatchScrapper>(provider =>
+{
+    var sc = new CommonBatchScrapper();
+    sc.AddScrapper(provider.GetRequiredService<GithubScrapper>());
+    sc.AddScrapper(provider.GetRequiredService<StackoverflowScrapper>());
+    return sc;
+});
+
 // add grpc
 builder.Services.AddGrpc();
 builder.Services.AddGrpcClient<TelegramBot.TelegramBotClient>((provider, c) =>
@@ -109,7 +122,7 @@ builder.Services.AddSingleton<BotGRPCClient>();
 builder.Services.AddFluentMigratorCore()
     .ConfigureRunner(rb => rb
         .AddPostgres()
-        .ScanIn(typeof(Program).Assembly).For.Migrations()
+        .ScanIn(typeof(InitialMigration).Assembly).For.Migrations()
         .WithGlobalConnectionString(provider => provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseConnectionString))
     .AddLogging(x => x.AddConsole());
 
