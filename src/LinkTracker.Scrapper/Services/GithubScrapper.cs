@@ -116,6 +116,7 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
         {
             if (item.CreatedAt > link.LastUpdate)
             {
+                _logger.LogDebug("New github update ({type}) in repository {link} - {title}", item_type, link.URL, item.Title);
                 var desc = $"New {item_type} - \"{Preview(item.Title)}\" from {item.User?.Login} at {item.CreatedAt}:\n{Preview(item.Body)}";
                 await _repository.AddLinkUpdate(link.URL, item.CreatedAt, desc);
             }
