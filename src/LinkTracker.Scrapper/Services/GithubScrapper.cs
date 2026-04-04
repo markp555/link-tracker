@@ -158,6 +158,11 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
             var link2 = new ScrappableLink(link.URL, link.LastUpdate);
             await Task.WhenAll(ProceedGithub(link1, response, "issue", cancellationToken), ProceedGithub(link2, response2, "pull request", cancellationToken));
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scrapping github link: {url}", link.URL);
+            await _repository.AddLinkUpdate(link.URL, DateTime.Now, "failed to scrap link");
+        }
         finally
         {
             throttler.Release();

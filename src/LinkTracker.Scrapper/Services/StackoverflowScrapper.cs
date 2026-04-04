@@ -297,7 +297,27 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
         await throttler.WaitAsync(cancellationToken);
         try
         {
-            await BatchScrapLimited(urls, cancellationToken);
+            try
+            {
+                await BatchScrapLimited(urls, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error scrapping stackoverflow urls: {urls}", urls);
+                foreach (var url in urls)
+                {
+                    try
+                    {
+                        await Task.Delay(150, cancellationToken);
+                        await BatchScrapLimited([url], cancellationToken);
+                    }
+                    catch (Exception ex2)
+                    {
+                        logger.LogError(ex2, "Error scrapping stackoverflow url: {url}", url.URL);
+                    }
+                }
+                throw;
+            }
         }
         finally
         {
