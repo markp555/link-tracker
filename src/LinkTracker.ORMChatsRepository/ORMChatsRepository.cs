@@ -196,4 +196,12 @@ public class ORMChatsRepository : IChatsRepository
         await using var conn = Connection;
         await conn.Updates.DeleteAsync();
     }
+
+    public async Task<IEnumerable<IChatsRepository.ScrappableLink>> FetchScrappableLinks()
+    {
+        await using var conn = Connection;
+        var updates = conn.Updates.Select(x => new { x.Url, x.DateTime }).GroupBy(x => x.Url).Select(x => new { x.Key, Value = x.Select(y => y.DateTime).Max() });
+        var res = conn.Links.Select(x => x.ResourceURL).Distinct().LeftJoin(updates, (a, b) => a == b.Key, (a, b) => new IChatsRepository.ScrappableLink(a, b.Value));
+        return await res.ToArrayAsync();
+    }
 }

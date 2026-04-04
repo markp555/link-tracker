@@ -203,4 +203,20 @@ public class InMemoryRepository : IChatsRepository
             return Task.CompletedTask;
         }
     }
+
+    public async Task<IEnumerable<IChatsRepository.ScrappableLink>> FetchScrappableLinks()
+    {
+        var links = await GetTrackingLinks();
+        HashSet<string> urls = [];
+        foreach (var item in links)
+        {
+            urls.Add(item.ResourceURL);
+        }
+        List<IChatsRepository.ScrappableLink> res = [];
+        foreach (var item in urls)
+        {
+            res.Add(new(item, await GetLastRegisteredLinkUpdate(item)));
+        }
+        return res;
+    }
 }

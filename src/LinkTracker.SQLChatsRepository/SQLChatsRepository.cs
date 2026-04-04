@@ -349,4 +349,20 @@ WHERE id = @id";
         await using var cmd = dataSource.CreateCommand(sql);
         await cmd.ExecuteNonQueryAsync();
     }
+
+    public async Task<IEnumerable<IChatsRepository.ScrappableLink>> FetchScrappableLinks()
+    {
+        var links = await GetTrackingLinks();
+        HashSet<string> urls = [];
+        foreach (var item in links)
+        {
+            urls.Add(item.ResourceURL);
+        }
+        List<IChatsRepository.ScrappableLink> res = [];
+        foreach (var item in urls)
+        {
+            res.Add(new(item, await GetLastRegisteredLinkUpdate(item)));
+        }
+        return res;
+    }
 }

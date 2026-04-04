@@ -309,4 +309,19 @@ public class RepositoryTests(Type suiteType)
         lst = await db.FetchLinkUpdates(url, yesterday, 2);
         Assert.That(lst.Count(), Is.EqualTo(1));
     }
+
+    [Test]
+    public async Task FetchScrappableLinks_Test()
+    {
+        var db = suite.Repository;
+        string url = "http://google.com";
+        await db.TryCreateChat(1);
+        await db.AddTrackingLink(new() { Id = 2, UserId = 1, ResourceURL = url, LastUpdate = DateTime.Today });
+        var res = await db.FetchScrappableLinks();
+        Assert.That(res.ToList(), Has.Count.EqualTo(1) & Has.One.EqualTo(new IChatsRepository.ScrappableLink(url, DateTime.MinValue)));
+        DateTime scrapDate = DateTime.Today - TimeSpan.FromHours(3);
+        await db.AddLinkUpdate(url, scrapDate, "1");
+        res = await db.FetchScrappableLinks();
+        Assert.That(res.ToList(), Has.Count.EqualTo(1) & Has.One.EqualTo(new IChatsRepository.ScrappableLink(url, scrapDate)));
+    }
 }
