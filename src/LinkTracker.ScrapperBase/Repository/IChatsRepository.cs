@@ -2,6 +2,8 @@ using LinkTracker.ScrapperBase.Models;
 
 namespace LinkTracker.ScrapperBase.Repository;
 
+public record ScrappableLink(string URL, DateTime LastUpdate);
+
 public interface IChatsRepository
 {
     public Task<bool> ChatExists(long chatId);
@@ -46,8 +48,6 @@ public interface IChatsRepository
     public Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit);
 
     public Task ClearLinkUpdates();
-
-    public record ScrappableLink(string URL, DateTime LastUpdate);
 
     // returns list of unique urls from GetTrackingLinks() with values from GetLastRegisteredLinkUpdate
     public Task<IEnumerable<ScrappableLink>> FetchScrappableLinks();

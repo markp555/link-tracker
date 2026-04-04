@@ -350,7 +350,7 @@ WHERE id = @id";
         await cmd.ExecuteNonQueryAsync();
     }
 
-    public async Task<IEnumerable<IChatsRepository.ScrappableLink>> FetchScrappableLinks()
+    public async Task<IEnumerable<ScrappableLink>> FetchScrappableLinks()
     {
         var links = await GetTrackingLinks();
         HashSet<string> urls = [];
@@ -358,7 +358,7 @@ WHERE id = @id";
         {
             urls.Add(item.ResourceURL);
         }
-        List<IChatsRepository.ScrappableLink> res = [];
+        List<ScrappableLink> res = [];
         foreach (var item in urls)
         {
             res.Add(new(item, await GetLastRegisteredLinkUpdate(item)));

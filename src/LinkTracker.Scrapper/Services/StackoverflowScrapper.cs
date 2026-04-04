@@ -251,7 +251,6 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
                 string body = doc.DocumentNode.InnerText;
                 var desc = $"New answer on question {Preview(title)} from user {Preview(item.Owner.Name)} at {answerDate}:\n{Preview(body)}";
                 await _repository.AddLinkUpdate(link.URL, answerDate, desc);
-                link.LastUpdate = answerDate;
             }
             lastScrappedAnswers.AddOrUpdate(item.QuestionId, DateTime.Now, (id, old) => DateTime.Now);
         }
@@ -275,7 +274,6 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
                 string title = linkTitles.GetValueOrDefault(item.QuestionId, "No title");
                 var desc = $"New comment on question {Preview(title)} from user {Preview(item.Owner.Name)} at {answerDate}:\n{Preview(item.Body)}";
                 await _repository.AddLinkUpdate(link.URL, answerDate, desc);
-                link.LastUpdate = answerDate;
             }
             lastScrappedComments.AddOrUpdate(item.QuestionId, DateTime.Now, (id, old) => DateTime.Now);
         }

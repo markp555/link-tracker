@@ -114,7 +114,6 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
             {
                 var desc = $"New {item_type} - \"{Preview(item.Title)}\" from {item.User?.Login}:\n{Preview(item.Body)}";
                 await _repository.AddLinkUpdate(link.URL, item.CreatedAt, desc);
-                link.LastUpdate = item.CreatedAt;
             }
         }
     }
@@ -152,14 +151,7 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
 
             var link1 = new ScrappableLink(link.URL, link.LastUpdate);
             var link2 = new ScrappableLink(link.URL, link.LastUpdate);
-            try
-            {
-                await Task.WhenAll(ProceedGithub(link1, response, "issue", cancellationToken), ProceedGithub(link2, response2, "pull request", cancellationToken));
-            }
-            finally
-            {
-                link.LastUpdate = link1.LastUpdate < link2.LastUpdate ? link2.LastUpdate : link1.LastUpdate;
-            }
+            await Task.WhenAll(ProceedGithub(link1, response, "issue", cancellationToken), ProceedGithub(link2, response2, "pull request", cancellationToken));
         }
         finally
         {
