@@ -1,10 +1,12 @@
 ﻿using LinkTracker.Scrapper;
+using LinkTracker.Scrapper.Configs;
 using LinkTracker.Scrapper.Services;
 using LinkTracker.ScrapperBase.Repository;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Quartz;
 
@@ -29,14 +31,21 @@ internal class ScrappingTestingScrapperTestFactory : ScrapperNoSchedulerFactory
                 return Task.CompletedTask;
             });
             services.AddSingleton(sender);
+            services.Configure<StackOverflow>(x =>
+            {
+                x.ThreadsSize = 1;
+            });
+            services.RemoveAll<IOptions<GitHub>>();
+            services.AddSingleton(Options.Create(new GitHub { MaxThreads = 1, Token = "lol" }));
         });
     }
 
     public async Task RunScrapping(CancellationToken cancellationToken = default)
     {
+        using var scope = Services.CreateScope();
         var context = Substitute.For<IJobExecutionContext>();
         context.CancellationToken.Returns(cancellationToken);
-        await Services.GetRequiredService<BatchScrapperJob>().Execute(context);
+        await scope.ServiceProvider.GetRequiredService<BatchScrapperJob>().Execute(context);
     }
 
     public async Task ClearDatabase()

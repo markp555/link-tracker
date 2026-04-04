@@ -33,7 +33,7 @@ public class BatchScrapperJob(
     {
         if (lastUpdate != null && lastUpdate.TryGetValue(link.ResourceURL, out var update))
         {
-            if (update < link.LastUpdate)
+            if (update > link.LastUpdate)
             {
                 // no new updates avaiable
                 return;
@@ -65,6 +65,8 @@ public class BatchScrapperJob(
         {
             logger.LogError(ex, "Error scrapping links, trying to send updates");
         }
+        // reload links
+        links = await _repository.FetchScrappableLinks();
         var userLinks = await _repository.GetTrackingLinks();
         Dictionary<string, DateTime> lastUpdate = scrapLinks.ToDictionary(x => x.URL, x => x.LastUpdate);
         await Task.WhenAll(userLinks.Select(x => ProceedLink(x, lastUpdate, cancellationToken)));

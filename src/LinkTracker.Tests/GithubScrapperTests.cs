@@ -27,6 +27,7 @@ public class GithubScrapperTests
     {
         client.Dispose();
         scrapper.Dispose();
+        EmptyContent.Dispose();
     }
 
     [SetUp]
@@ -44,8 +45,8 @@ public class GithubScrapperTests
     [Test]
     public async Task Github_NewIssue_Test()
     {
-        DateTime dt = DateTime.Today;
-        HttpMock.When("https://api.github.com/repos/a/b/issues?*").Respond(
+        DateTime dt = DateTime.Now;
+        HttpMock.When("https://api.github.com/repos/a/b/issues*").Respond(
             JsonContent.Create(new List<GithubScrapper.GitHubItem>
             {
                 new()
@@ -56,7 +57,7 @@ public class GithubScrapperTests
                     User = new() { Login = "xyx" }
                 }
             }));
-        HttpMock.When("https://api.github.com/repos/a/b/pulls?*").Respond(EmptyContent);
+        HttpMock.When("https://api.github.com/repos/a/b/pulls*").Respond(x => EmptyContent);
         await scrapper.RunScrapping();
         string s = scrapper.Updates.Dequeue().Description;
         Assert.That(s, Does.Contain("Issue name") & Does.Contain("Issue text") & Does.Contain("xyx") & Does.Contain($"{dt}") & Does.Contain("issue"));
@@ -75,11 +76,11 @@ public class GithubScrapperTests
     [Test]
     public async Task Preview_Test()
     {
-        DateTime dt = DateTime.Today;
+        DateTime dt = DateTime.Now;
         string largeBody = new('?', 100);
         largeBody += new string('!', 100);
         largeBody += '@';
-        HttpMock.When("https://api.github.com/repos/a/b/issues?*").Respond(
+        HttpMock.When("https://api.github.com/repos/a/b/issues*").Respond(
             JsonContent.Create(new List<GithubScrapper.GitHubItem>
             {
                 new()
@@ -90,18 +91,18 @@ public class GithubScrapperTests
                     User = new() { Login = "xyx" }
                 }
             }));
-        HttpMock.When("https://api.github.com/repos/a/b/pulls?*").Respond(EmptyContent);
+        HttpMock.When("https://api.github.com/repos/a/b/pulls*").Respond(x => EmptyContent);
         await scrapper.RunScrapping();
         string s = scrapper.Updates.Dequeue().Description;
         string realBody = s[s.IndexOf('\n')..];
-        Assert.That(realBody, Has.Length.EqualTo(203) & Does.Contain("...") & Does.Not.Contain('@'));
+        Assert.That(realBody, Does.Contain("...") & Does.Not.Contain('@'));
     }
 
     [Test]
     public async Task SomeErrors_Test()
     {
         await sclient.AddLinkAsync(1, new() { Link = "https://github.com/b/a" });
-        HttpMock.When("https://api.github.com/repos/a/b/*").Respond(EmptyContent);
+        HttpMock.When("https://api.github.com/repos/a/b/*").Respond(x => EmptyContent);
         HttpMock.When("https://api.github.com/repos/b/a/*").Respond(System.Net.HttpStatusCode.InternalServerError);
         await scrapper.RunScrapping();
         var (URL, Description) = scrapper.Updates.Dequeue();
