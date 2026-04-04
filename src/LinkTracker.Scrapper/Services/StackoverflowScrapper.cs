@@ -1,6 +1,7 @@
 using LinkTracker.Scrapper.Configs;
 using LinkTracker.ScrapperBase.Repository;
 using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -170,6 +171,8 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
         return s;
     }
 
+    private ConcurrentDictionary<long, DateTime> lastScrappedComments = [], lastScrappedAnswers = [];
+
     private async Task BatchScrapLimited(ScrappableLink[] urls, CancellationToken cancellationToken = default)
     {
         Dictionary<long, ScrappableLink> linkData = [];
@@ -204,7 +207,15 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
                 logger.LogWarning("Invalid question returned from stackoverflow (question id not found): {@Answer}", item);
                 continue;
             }
-            if (link.LastUpdate >= DateTimeOffset.FromUnixTimeSeconds(item.LastActivityDateUnix).DateTime)
+            DateTime updatedAt = DateTimeOffset.FromUnixTimeSeconds(item.LastActivityDateUnix).DateTime;
+            if (link.LastUpdate >= updatedAt)
+            {
+                linkData.Remove(item.QuestionId);
+                continue;
+            }
+            // already getted comments and answers
+            if (lastScrappedAnswers.GetOrAdd(item.QuestionId, DateTime.MinValue) > updatedAt &&
+                lastScrappedComments.GetOrAdd(item.QuestionId, DateTime.MinValue) > updatedAt)
             {
                 linkData.Remove(item.QuestionId);
             }
@@ -242,6 +253,7 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
                 await _repository.AddLinkUpdate(link.URL, answerDate, desc);
                 link.LastUpdate = answerDate;
             }
+            lastScrappedAnswers.AddOrUpdate(item.QuestionId, DateTime.Now, (id, old) => DateTime.Now);
         }
 
         requestUrl = $"questions/{questionIds}/comments?page=1&pagesize=10&order=desc&sort=creation&site=stackoverflow&filter=!aiR2IBYoZwi7D9";
@@ -265,9 +277,20 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
                 await _repository.AddLinkUpdate(link.URL, answerDate, desc);
                 link.LastUpdate = answerDate;
             }
+            lastScrappedComments.AddOrUpdate(item.QuestionId, DateTime.Now, (id, old) => DateTime.Now);
         }
 
         logger.LogInformation("Finished batch procesing");
+
+        if (!response.HasMore && !response2.HasMore && !response3.HasMore)
+        {
+            logger.LogInformation("Batch scrap finished successfully");
+            foreach (var item in linkData.Keys)
+            {
+                lastScrappedAnswers.AddOrUpdate(item, DateTime.Now, (id, old) => DateTime.Now);
+                lastScrappedComments.AddOrUpdate(item, DateTime.Now, (id, old) => DateTime.Now);
+            }
+        }
     }
 
     // limits amount of scrapper threads to maxThreads
