@@ -116,7 +116,7 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
         {
             if (item.CreatedAt > link.LastUpdate)
             {
-                var desc = $"New {item_type} - \"{Preview(item.Title)}\" from {item.User?.Login}:\n{Preview(item.Body)}";
+                var desc = $"New {item_type} - \"{Preview(item.Title)}\" from {item.User?.Login} at {item.CreatedAt}:\n{Preview(item.Body)}";
                 await _repository.AddLinkUpdate(link.URL, item.CreatedAt, desc);
             }
         }
