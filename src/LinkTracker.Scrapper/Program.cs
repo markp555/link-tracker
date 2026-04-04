@@ -90,7 +90,7 @@ builder.Services.AddHttpClient<StackoverflowScrapper>()
     {
         // configure client here
         c.BaseAddress = new Uri("https://api.stackexchange.com/2.3/");
-        c.Timeout = TimeSpan.FromSeconds(3);
+        c.Timeout = TimeSpan.FromSeconds(10);
     });
 // add github scrapper
 builder.Services.AddHttpClient<GithubScrapper>()
@@ -98,7 +98,7 @@ builder.Services.AddHttpClient<GithubScrapper>()
     {
         // configure client here
         c.BaseAddress = new Uri("https://api.github.com/");
-        c.Timeout = TimeSpan.FromSeconds(3);
+        c.Timeout = TimeSpan.FromSeconds(10);
     });
 
 // add batch scrapper

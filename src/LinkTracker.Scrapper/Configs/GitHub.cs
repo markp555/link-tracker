@@ -6,4 +6,6 @@ public class GitHub
 {
     [Required]
     public string Token { get; set; } = "";
+
+    public int MaxThreads { get; set; } = Environment.ProcessorCount;
 }
