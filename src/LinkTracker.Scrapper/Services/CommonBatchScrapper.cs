@@ -1,4 +1,5 @@
 
+using LinkTracker.ScrapperBase.Repository;
 using System.Diagnostics.Eventing.Reader;
 
 namespace LinkTracker.Scrapper.Services;
