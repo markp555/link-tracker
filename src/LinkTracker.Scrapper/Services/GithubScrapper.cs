@@ -70,14 +70,15 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
     [GeneratedRegex(@"^https://github\.com/([^/]+)/([^/]+?)(?:/|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "ru-RU")]
     private static partial Regex CreateRepoRegex();
 
-    public async Task BatchScrap(IEnumerable<string> urls, CancellationToken cancellationToken)
+    public async Task BatchScrap(IEnumerable<ScrappableLink> urls, CancellationToken cancellationToken)
     {
         foreach (var item in urls)
         {
-            var res = await Scrap(item, cancellationToken);
-            if (res.LastUpdateDate > await _repository.GetLastRegisteredLinkUpdate(item))
+            var res = await Scrap(item.URL, cancellationToken);
+            if (res.LastUpdateDate > item.LastUpdate)
             {
-                await _repository.AddLinkUpdate(item, res.LastUpdateDate, res.LastUpdateDescription);
+                await _repository.AddLinkUpdate(item.URL, res.LastUpdateDate, res.LastUpdateDescription);
+                item.LastUpdate = res.LastUpdateDate;
             }
         }
     }

@@ -29,8 +29,16 @@ public class BatchScrapperJob(
         return bs;
     }
 
-    private async Task ProceedLink(LinkTrackerData link, CancellationToken cancellationToken)
+    private async Task ProceedLink(LinkTrackerData link, Dictionary<string, DateTime>? lastUpdate = null, CancellationToken cancellationToken = default)
     {
+        if (lastUpdate != null && lastUpdate.TryGetValue(link.ResourceURL, out var update))
+        {
+            if (update < link.LastUpdate)
+            {
+                // no new updates avaiable
+                return;
+            }
+        }
         // +1 because we wanna know if there are others updates or not to show ...more updates... message
         var news = await _repository.FetchLinkUpdates(link.ResourceURL, link.LastUpdate, MAX_UPDATES + 1);
         if (!news.Any())
@@ -45,23 +53,21 @@ public class BatchScrapperJob(
     public async Task Execute(IJobExecutionContext context)
     {
         CancellationToken cancellationToken = context.CancellationToken;
-        var links = await _repository.GetTrackingLinks();
-        HashSet<string> urls = [];
-        foreach (var link in links)
-        {
-            urls.Add(link.ResourceURL);
-        }
         logger.LogInformation("Started scrapping");
+        var links = await _repository.FetchScrappableLinks();
+        var scrapLinks = links.Select(x => new ScrappableLink(x.URL, x.LastUpdate)).ToArray();
         try
         {
-            await _scrapper.BatchScrap(urls, cancellationToken);
+            await _scrapper.BatchScrap(scrapLinks, cancellationToken);
             logger.LogInformation("Sending updates");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error scrapping links, trying to send updates");
         }
-        await Task.WhenAll(links.Select(x => ProceedLink(x, cancellationToken)));
+        var userLinks = await _repository.GetTrackingLinks();
+        Dictionary<string, DateTime> lastUpdate = scrapLinks.ToDictionary(x => x.URL, x => x.LastUpdate);
+        await Task.WhenAll(userLinks.Select(x => ProceedLink(x, lastUpdate, cancellationToken)));
         logger.LogInformation("Sended updates");
     }
 }

@@ -15,21 +15,21 @@ public class CommonBatchScrapper : IBatchScrapper
         _scrappers.Add(scrapper);
     }
 
-    public Task BatchScrap(IEnumerable<string> urls, CancellationToken cancellationToken)
+    public Task BatchScrap(IEnumerable<ScrappableLink> urls, CancellationToken cancellationToken)
     {
-        var queue = new List<string>[_scrappers.Count];
+        var queue = new List<ScrappableLink>[_scrappers.Count];
         for (int i = 0; i < _scrappers.Count; i++)
         {
             queue[i] = [];
         }
-        foreach (var url in urls)
+        foreach (var scrapUrl in urls)
         {
             bool ok = false;
             for (int i = 0; i < _scrappers.Count; i++)
             {
-                if (_scrappers[i].CanProceedLink(url))
+                if (_scrappers[i].CanProceedLink(scrapUrl.URL))
                 {
-                    queue[i].Add(url);
+                    queue[i].Add(scrapUrl);
                     ok = true;
                     break;
                 }
