@@ -45,14 +45,14 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
     public class GitHubItem
     {
         [JsonPropertyName("title")]
-        public string Title { get; set; } = string.Empty;
+        public string? Title { get; set; } = null;
 
         [JsonRequired]
         [JsonPropertyName("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         [JsonPropertyName("body")]
-        public string Body { get; set; } = string.Empty;
+        public string? Body { get; set; } = null;
 
         [JsonPropertyName("user")]
         public GitHubUser? User { get; set; }
@@ -61,7 +61,7 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
     public GithubScrapper(HttpClient client, IOptions<GitHub> options, IChatsRepository repository, ILogger<GithubScrapper> logger)
     {
         _httpClient = client;
-        client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+        client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.text+json");
         client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36");
         client.DefaultRequestHeaders.Authorization = new("Bearer", options.Value.Token);
         _repository = repository;
@@ -97,8 +97,12 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
     [GeneratedRegex(@"^https://github\.com/([^/]+)/([^/]+?)(?:/|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled, "ru-RU")]
     private static partial Regex CreateRepoRegex();
 
-    private static string Preview(string s)
+    private static string Preview(string? s)
     {
+        if (s == null)
+        {
+            return "???";
+        }
         if (s.Length > 200)
         {
             return string.Concat(s.AsSpan(0, 200), "...");
