@@ -222,7 +222,7 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
         var response2 = await _httpClient.GetFromJsonAsync<BatchStackApiResponse<Answer>>(requestUrl, cancellationToken)
             ?? throw new ApplicationException("Unable to parse recieved json from stackoverflow");
 
-        logger.LogInformation("Stackoverflow API returned {answerCount} answers", response.Items.Count);
+        logger.LogInformation("Stackoverflow API returned {answerCount} answers", response2.Items.Count);
 
         foreach (var item in response2.Items.OrderBy(x => x.CreationDateUnix))
         {
@@ -248,7 +248,7 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
         var response3 = await _httpClient.GetFromJsonAsync<BatchStackApiResponse<Comment>>(requestUrl, cancellationToken)
             ?? throw new ApplicationException("Unable to parse recieved json from stackoverflow");
 
-        logger.LogInformation("Stackoverflow API returned {commentCount} comments", response.Items.Count);
+        logger.LogInformation("Stackoverflow API returned {commentCount} comments", response3.Items.Count);
 
         foreach (var item in response3.Items.OrderBy(x => x.CreationDateUnix))
         {
