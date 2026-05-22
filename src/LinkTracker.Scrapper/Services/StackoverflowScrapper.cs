@@ -155,8 +155,6 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
         return s;
     }
 
-    private ConcurrentDictionary<long, DateTime> lastScrappedComments = [], lastScrappedAnswers = [];
-
     private async Task BatchScrapLimited(ScrappableLink[] urls, CancellationToken cancellationToken = default)
     {
         Dictionary<long, ScrappableLink> linkData = [];
@@ -197,12 +195,6 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
                 linkData.Remove(item.QuestionId);
                 continue;
             }
-            // already getted comments and answers
-            if (lastScrappedAnswers.GetOrAdd(item.QuestionId, DateTime.MinValue) > updatedAt &&
-                lastScrappedComments.GetOrAdd(item.QuestionId, DateTime.MinValue) > updatedAt)
-            {
-                linkData.Remove(item.QuestionId);
-            }
         }
 
         if (linkData.Count == 0)
@@ -236,7 +228,6 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
                 var desc = $"New answer on question {Preview(title)} from user {Preview(item.Owner.Name)} at {answerDate}:\n{Preview(body)}";
                 await _repository.AddLinkUpdate(link.URL, answerDate, desc);
             }
-            lastScrappedAnswers.AddOrUpdate(item.QuestionId, DateTime.Now, (id, old) => DateTime.Now);
         }
 
         requestUrl = $"questions/{questionIds}/comments?page=1&pagesize=10&order=desc&sort=creation&site=stackoverflow&filter=!aiR2IBYoZwi7D9" + (apiToken == "" ? "" : $"&key={apiToken}");
@@ -259,7 +250,6 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
                 var desc = $"New comment on question {Preview(title)} from user {Preview(item.Owner.Name)} at {answerDate}:\n{Preview(item.Body)}";
                 await _repository.AddLinkUpdate(link.URL, answerDate, desc);
             }
-            lastScrappedComments.AddOrUpdate(item.QuestionId, DateTime.Now, (id, old) => DateTime.Now);
         }
 
         logger.LogInformation("Finished batch procesing");
@@ -267,11 +257,6 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
         if (!response.HasMore && !response2.HasMore && !response3.HasMore)
         {
             logger.LogInformation("Batch scrap finished successfully");
-            foreach (var item in linkData.Keys)
-            {
-                lastScrappedAnswers.AddOrUpdate(item, DateTime.Now, (id, old) => DateTime.Now);
-                lastScrappedComments.AddOrUpdate(item, DateTime.Now, (id, old) => DateTime.Now);
-            }
         }
     }
 

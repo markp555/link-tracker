@@ -16,7 +16,7 @@ public interface IChatsRepository
     /// Get ids of all registered chats
     /// </summary>
     /// <returns>list of ids for registered chats</returns>
-    public Task<IEnumerable<long>> GetChats();
+    public Task<IReadOnlyList<long>> GetChats();
 
 
     /// <summary>
@@ -24,7 +24,7 @@ public interface IChatsRepository
     /// </summary>
     /// <param name="chatId">[optional] Chat id for which links should be recieved. If null, links for all chats recieved</param>
     /// <returns>List of tracked links</returns>
-    public Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null);
+    public Task<IReadOnlyList<LinkTrackerData>> GetTrackingLinks(long? chatId = null);
 
     public Task AddTrackingLink(LinkTrackerData link);
 
@@ -37,7 +37,7 @@ public interface IChatsRepository
 
     public Task AddTagToLink(long linkId, string tag);
     public Task RemoveTagFromLink(long linkId, string tag);
-    public Task<IEnumerable<string>> GetTagsFromLink(long linkId);
+    public Task<IReadOnlyList<string>> GetTagsFromLink(long linkId);
 
     public Task<LinkTrackerData?> FindLinkTrackerByUrl(string url, long chatId);
 
@@ -46,10 +46,10 @@ public interface IChatsRepository
     public Task AddLinkUpdate(string url, DateTime created, string content);
 
     // Return at most limit updates description from most recently to most old but not older than from
-    public Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit);
+    public Task<IReadOnlyList<string>> FetchLinkUpdates(string url, DateTime from, int limit);
 
     public Task ClearLinkUpdates();
 
     // returns list of unique urls from GetTrackingLinks() with values from GetLastRegisteredLinkUpdate
-    public Task<IEnumerable<ScrappableLink>> FetchScrappableLinks();
+    public Task<IReadOnlyList<ScrappableLink>> FetchScrappableLinks();
 }

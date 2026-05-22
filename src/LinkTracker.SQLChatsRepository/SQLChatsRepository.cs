@@ -165,7 +165,7 @@ SELECT * FROM links WHERE user_id = @id AND resource_url = @url;";
         return dat;
     }
 
-    public async Task<IEnumerable<long>> GetChats()
+    public async Task<IReadOnlyList<long>> GetChats()
     {
         var sql = @"
 SELECT tgid FROM chats;";
@@ -205,12 +205,12 @@ SELECT tgid FROM chats;";
         }
     }
 
-    public async Task<IEnumerable<string>> GetTagsFromLink(long linkId)
+    public async Task<IReadOnlyList<string>> GetTagsFromLink(long linkId)
     {
         return await RecieveLinkList(linkId, LinkLists.TagList);
     }
 
-    public async Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
+    public async Task<IReadOnlyList<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
     {
         var sql = chatId != null ? "SELECT * FROM links WHERE user_id = @Id;" : "SELECT * FROM links;";
         await using var cmd = dataSource.CreateCommand(sql);
@@ -327,7 +327,7 @@ WHERE id = @id";
         }
     }
 
-    public async Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit)
+    public async Task<IReadOnlyList<string>> FetchLinkUpdates(string url, DateTime from, int limit)
     {
         var sql = "SELECT content FROM link_updates WHERE url = @url AND datetime >= @from ORDER BY datetime DESC LIMIT @lim;";
         await using var cmd = dataSource.CreateCommand(sql);
@@ -350,7 +350,7 @@ WHERE id = @id";
         await cmd.ExecuteNonQueryAsync();
     }
 
-    public async Task<IEnumerable<ScrappableLink>> FetchScrappableLinks()
+    public async Task<IReadOnlyList<ScrappableLink>> FetchScrappableLinks()
     {
         var links = await GetTrackingLinks();
         HashSet<string> urls = [];

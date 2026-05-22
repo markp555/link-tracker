@@ -1,5 +1,6 @@
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
+using System.Collections.Immutable;
 
 namespace LinkTracker.Scrapper.Repository;
 
@@ -52,7 +53,7 @@ public class InMemoryRepository : IChatsRepository
         return _chats.Contains(chatId);
     }
 
-    public async Task<IEnumerable<long>> GetChats()
+    public async Task<IReadOnlyList<long>> GetChats()
     {
         await using var lck = await AsyncLock.Lock(semaphore);
         List<long> copy = new(_chats);
@@ -64,11 +65,11 @@ public class InMemoryRepository : IChatsRepository
         return Task.FromResult(Interlocked.Increment(ref _id));
     }
 
-    public async Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
+    public async Task<IReadOnlyList<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
     {
         await using var lck = await AsyncLock.Lock(semaphore);
         List<LinkTrackerData> copy = new(_links);
-        return chatId != null ? copy.Where(x => x.UserId == chatId) : copy;
+        return chatId != null ? copy.Where(x => x.UserId == chatId).ToImmutableList() : copy;
     }
 
     public async Task RemoveTrackingLink(LinkTrackerData link)
@@ -137,7 +138,7 @@ public class InMemoryRepository : IChatsRepository
         ltd.Tags.Remove(tag);
     }
 
-    public async Task<IEnumerable<string>> GetTagsFromLink(long linkId)
+    public async Task<IReadOnlyList<string>> GetTagsFromLink(long linkId)
     {
         await using var lck = await AsyncLock.Lock(semaphore);
         LinkTrackerData? ltd = _links.FirstOrDefault(x => x.Id == linkId);
@@ -181,16 +182,16 @@ public class InMemoryRepository : IChatsRepository
         }
     }
 
-    public Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit)
+    public Task<IReadOnlyList<string>> FetchLinkUpdates(string url, DateTime from, int limit)
     {
         lock (linkUpdates)
         {
             if (!linkUpdates.TryGetValue(url, out var x))
             {
-                return Task.FromResult(new List<string>() as IEnumerable<string>);
+                return Task.FromResult(new List<string>() as IReadOnlyList<string>);
             }
             var lst = x.Updates.Where(x => x.DateTime >= from).OrderByDescending(x => x.DateTime).Take(limit).Select(x => x.Content);
-            return Task.FromResult(lst.ToList().AsEnumerable());
+            return Task.FromResult(lst.ToList() as IReadOnlyList<string>);
         }
     }
 
@@ -203,7 +204,7 @@ public class InMemoryRepository : IChatsRepository
         }
     }
 
-    public async Task<IEnumerable<ScrappableLink>> FetchScrappableLinks()
+    public async Task<IReadOnlyList<ScrappableLink>> FetchScrappableLinks()
     {
         var links = await GetTrackingLinks();
         HashSet<string> urls = [];

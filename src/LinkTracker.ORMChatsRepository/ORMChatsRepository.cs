@@ -74,7 +74,7 @@ public class ORMChatsRepository : IChatsRepository
         }).FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<long>> GetChats()
+    public async Task<IReadOnlyList<long>> GetChats()
     {
         await using var conn = Connection;
         return await conn.Chats.Select(x => x.TgID).ToArrayAsync();
@@ -97,13 +97,13 @@ public class ORMChatsRepository : IChatsRepository
         }
     }
 
-    public async Task<IEnumerable<string>> GetTagsFromLink(long linkId)
+    public async Task<IReadOnlyList<string>> GetTagsFromLink(long linkId)
     {
         await using var conn = Connection;
         return await conn.Tags.Where(x => x.LinkId == linkId).Select(x => x.Value).ToArrayAsync();
     }
 
-    public async Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
+    public async Task<IReadOnlyList<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
     {
         await using var conn = Connection;
         var query = chatId != null ? conn.Links.Where(x => x.UserId == chatId) : conn.Links;
@@ -185,7 +185,7 @@ public class ORMChatsRepository : IChatsRepository
         }
     }
 
-    public async Task<IEnumerable<string>> FetchLinkUpdates(string url, DateTime from, int limit)
+    public async Task<IReadOnlyList<string>> FetchLinkUpdates(string url, DateTime from, int limit)
     {
         await using var conn = Connection;
         return await conn.Updates.Where(x => x.Url == url && x.DateTime >= from).ThenOrByDescending(x => x.DateTime).Take(limit).Select(x => x.Value).ToArrayAsync();
@@ -197,7 +197,7 @@ public class ORMChatsRepository : IChatsRepository
         await conn.Updates.DeleteAsync();
     }
 
-    public async Task<IEnumerable<ScrappableLink>> FetchScrappableLinks()
+    public async Task<IReadOnlyList<ScrappableLink>> FetchScrappableLinks()
     {
         await using var conn = Connection;
         var updates = conn.Updates.Select(x => new { x.Url, x.DateTime }).GroupBy(x => x.Url).Select(x => new { x.Key, Value = x.Select(y => y.DateTime).Max() });
