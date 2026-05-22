@@ -13,7 +13,7 @@ namespace LinkTracker.Scrapper.Services;
 public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
 {
     private readonly HttpClient _httpClient;
-    private string apiToken;
+    private readonly string apiToken;
     private readonly IChatsRepository _repository;
     private readonly SemaphoreSlim throttler;
     private readonly int batchSize;
@@ -36,22 +36,6 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
     // https://stackoverflow.com/questions/77556000/title... -> 77556000
     private static readonly Regex UrlRegex = CreateUrlRegex();
 
-    private class StackApiResponse
-    {
-        [JsonRequired]
-        [JsonPropertyName("items")]
-        public List<Question> Items { get; set; } = [];
-
-        [JsonPropertyName("has_more")]
-        public bool HasMore { get; set; }
-
-        [JsonPropertyName("quota_max")]
-        public int QuotaMax { get; set; }
-
-        [JsonPropertyName("quota_remaining")]
-        public int QuotaRemaining { get; set; }
-    }
-
     public class Question
     {
         [JsonRequired]
@@ -73,7 +57,7 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
         public string Link { get; set; } = string.Empty;
     }
 
-    public class BatchStackApiResponse<T>
+    public class StackApiResponse<T>
     {
         [JsonRequired]
         [JsonPropertyName("items")]
@@ -148,7 +132,7 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
             requestUrl += $"&key={apiToken}";
         }
 
-        var response = await _httpClient.GetFromJsonAsync<StackApiResponse>(requestUrl, cancellationToken)
+        var response = await _httpClient.GetFromJsonAsync<StackApiResponse<Question>>(requestUrl, cancellationToken)
             ?? throw new ApplicationException("Unable to parse recieved json from stackoverflow");
 
         if (response.Items.Count == 0)
@@ -190,11 +174,11 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
         }
 
         string questionIds = string.Join(";", linkData.Keys);
-        string requestUrl = $"questions/{questionIds}?order=desc&sort=activity&site=stackoverflow";
+        string requestUrl = $"questions/{questionIds}?order=desc&sort=activity&site=stackoverflow" + (apiToken == "" ? "" : $"&key={apiToken}");
 
         logger.LogInformation("Processing batch request for {urlCount} urls", urls.Length);
 
-        var response = await _httpClient.GetFromJsonAsync<BatchStackApiResponse<Question>>(requestUrl, cancellationToken)
+        var response = await _httpClient.GetFromJsonAsync<StackApiResponse<Question>>(requestUrl, cancellationToken)
             ?? throw new ApplicationException("Unable to parse recieved json from stackoverflow");
 
         logger.LogInformation("Recieved information about {questionCount} questions", response.Items.Count);
@@ -229,8 +213,8 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
 
         questionIds = string.Join(";", linkData.Keys);
 
-        requestUrl = $"questions/{questionIds}/answers?page=1&pagesize=15&order=desc&sort=creation&site=stackoverflow&filter=!aiR2IBYoZwi7D9";
-        var response2 = await _httpClient.GetFromJsonAsync<BatchStackApiResponse<Answer>>(requestUrl, cancellationToken)
+        requestUrl = $"questions/{questionIds}/answers?page=1&pagesize=15&order=desc&sort=creation&site=stackoverflow&filter=!aiR2IBYoZwi7D9" + (apiToken == "" ? "" : $"&key={apiToken}");
+        var response2 = await _httpClient.GetFromJsonAsync<StackApiResponse<Answer>>(requestUrl, cancellationToken)
             ?? throw new ApplicationException("Unable to parse recieved json from stackoverflow");
 
         logger.LogInformation("Stackoverflow API returned {answerCount} answers", response2.Items.Count);
@@ -255,8 +239,8 @@ public partial class StackoverflowScrapper : IScrapper, IBatchScrapper
             lastScrappedAnswers.AddOrUpdate(item.QuestionId, DateTime.Now, (id, old) => DateTime.Now);
         }
 
-        requestUrl = $"questions/{questionIds}/comments?page=1&pagesize=10&order=desc&sort=creation&site=stackoverflow&filter=!aiR2IBYoZwi7D9";
-        var response3 = await _httpClient.GetFromJsonAsync<BatchStackApiResponse<Comment>>(requestUrl, cancellationToken)
+        requestUrl = $"questions/{questionIds}/comments?page=1&pagesize=10&order=desc&sort=creation&site=stackoverflow&filter=!aiR2IBYoZwi7D9" + (apiToken == "" ? "" : $"&key={apiToken}");
+        var response3 = await _httpClient.GetFromJsonAsync<StackApiResponse<Comment>>(requestUrl, cancellationToken)
             ?? throw new ApplicationException("Unable to parse recieved json from stackoverflow");
 
         logger.LogInformation("Stackoverflow API returned {commentCount} comments", response3.Items.Count);

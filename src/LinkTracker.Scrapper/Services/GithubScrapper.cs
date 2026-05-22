@@ -154,9 +154,7 @@ public partial class GithubScrapper : IScrapper, IBatchScrapper
 
             _logger.LogInformation("Getted {count} pull requests from github", response2.Count);
 
-            var link1 = new ScrappableLink(link.URL, link.LastUpdate);
-            var link2 = new ScrappableLink(link.URL, link.LastUpdate);
-            await Task.WhenAll(ProceedGithub(link1, response, "issue", cancellationToken), ProceedGithub(link2, response2, "pull request", cancellationToken));
+            await Task.WhenAll(ProceedGithub(link, response, "issue", cancellationToken), ProceedGithub(link, response2, "pull request", cancellationToken));
         }
         catch (Exception ex)
         {

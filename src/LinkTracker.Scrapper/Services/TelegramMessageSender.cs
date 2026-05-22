@@ -5,8 +5,8 @@ namespace LinkTracker.Scrapper.Services;
 
 public class TelegramMessageSender(IBotApi botApi, IChatsRepository repository) : IMessageSender
 {
-    private IBotApi _botApi = botApi;
-    private IChatsRepository _repository = repository;
+    private readonly IBotApi _botApi = botApi;
+    private readonly IChatsRepository _repository = repository;
 
     public async Task SendUpdateToUser(long userId, string url, string message, CancellationToken cancellationToken = default)
     {
