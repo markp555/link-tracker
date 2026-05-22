@@ -1,6 +1,5 @@
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LinkTracker.Scrapper.Repository;
 
@@ -9,39 +8,55 @@ public class InMemoryRepository : IChatsRepository
     private HashSet<long> _chats = [];
     private List<LinkTrackerData> _links = [];
     private long _id = 0;
+    private SemaphoreSlim semaphore = new(1, 1);
 
-    public Task AddTrackingLink(LinkTrackerData link)
+    private class AsyncLock : IAsyncDisposable
     {
-        lock (_links)
+        private SemaphoreSlim _semaphore;
+
+        private AsyncLock(SemaphoreSlim semaphore)
         {
-            if (!_chats.Contains(link.UserId))
-            {
-                throw new InvalidOperationException("Adding link to non-existence chat");
-            }
-            if (_links.Find(x => x.ResourceURL == link.ResourceURL && x.UserId == link.UserId) != null)
-            {
-                throw new InvalidOperationException("Adding same link twice");
-            }
-            _links.Add(link);
-            return Task.CompletedTask;
+            _semaphore = semaphore;
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            _semaphore.Release();
+            return ValueTask.CompletedTask;
+        }
+
+        public static async Task<AsyncLock> Lock(SemaphoreSlim semaphore)
+        {
+            await semaphore.WaitAsync();
+            return new AsyncLock(semaphore);
         }
     }
 
-    public Task<bool> ChatExists(long chatId)
+    public async Task AddTrackingLink(LinkTrackerData link)
     {
-        lock (_chats)
+        await using var lck = await AsyncLock.Lock(semaphore);
+        if (!_chats.Contains(link.UserId))
         {
-            return Task.FromResult(_chats.Contains(chatId));
+            throw new InvalidOperationException("Adding link to non-existence chat");
         }
+        if (_links.Find(x => x.ResourceURL == link.ResourceURL && x.UserId == link.UserId) != null)
+        {
+            throw new InvalidOperationException("Adding same link twice");
+        }
+        _links.Add(link);
     }
 
-    public Task<IEnumerable<long>> GetChats()
+    public async Task<bool> ChatExists(long chatId)
     {
-        lock (_chats)
-        {
-            List<long> copy = new(_chats);
-            return Task.FromResult(copy as IEnumerable<long>);
-        }
+        await using var lck = await AsyncLock.Lock(semaphore);
+        return _chats.Contains(chatId);
+    }
+
+    public async Task<IEnumerable<long>> GetChats()
+    {
+        await using var lck = await AsyncLock.Lock(semaphore);
+        List<long> copy = new(_chats);
+        return copy;
     }
 
     public Task<long> GetNextFreeId()
@@ -49,59 +64,42 @@ public class InMemoryRepository : IChatsRepository
         return Task.FromResult(Interlocked.Increment(ref _id));
     }
 
-    public Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
+    public async Task<IEnumerable<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
     {
-        List<LinkTrackerData> copy;
-        lock (_links)
+        await using var lck = await AsyncLock.Lock(semaphore);
+        List<LinkTrackerData> copy = new(_links);
+        return chatId != null ? copy.Where(x => x.UserId == chatId) : copy;
+    }
+
+    public async Task RemoveTrackingLink(LinkTrackerData link)
+    {
+        await using var lck = await AsyncLock.Lock(semaphore);
+        if (!_links.Remove(link))
         {
-            copy = new(_links);
-        }
-        if (chatId != null)
-        {
-            return Task.FromResult(copy.Where(x => x.UserId == chatId));
-        }
-        else
-        {
-            return Task.FromResult(copy as IEnumerable<LinkTrackerData>);
+            throw new InvalidOperationException("Trying to remove not existing link");
         }
     }
 
-    public Task RemoveTrackingLink(LinkTrackerData link)
+    public async Task<bool> TryCreateChat(long chatId)
     {
-        lock (_links)
+        await using var lck = await AsyncLock.Lock(semaphore);
+        if (_chats.Contains(chatId))
         {
-            if (!_links.Remove(link))
-            {
-                throw new InvalidOperationException("Trying to remove not existing link");
-            }
-            return Task.CompletedTask;
+            return false;
         }
+        _chats.Add(chatId);
+        return true;
     }
 
-    public Task<bool> TryCreateChat(long chatId)
+    public async Task<bool> TryRemoveChat(long chatId)
     {
-        lock (_chats)
+        await using var lck = await AsyncLock.Lock(semaphore);
+        if (!_chats.Contains(chatId))
         {
-            if (_chats.Contains(chatId))
-            {
-                return Task.FromResult(false);
-            }
-            _chats.Add(chatId);
-            return Task.FromResult(true);
+            return false;
         }
-    }
-
-    public Task<bool> TryRemoveChat(long chatId)
-    {
-        lock (_chats)
-        {
-            if (!_chats.Contains(chatId))
-            {
-                return Task.FromResult(false);
-            }
-            _chats.Remove(chatId);
-            return Task.FromResult(true);
-        }
+        _chats.Remove(chatId);
+        return true;
     }
 
     public async Task UpdateTrackingLink(LinkTrackerData link)
@@ -110,18 +108,17 @@ public class InMemoryRepository : IChatsRepository
         await AddTrackingLink(link);
     }
 
-    public Task<LinkTrackerData?> FindLinkTrackerByUrl(string url, long chatId)
+    public async Task<LinkTrackerData?> FindLinkTrackerByUrl(string url, long chatId)
     {
-        lock (_links)
-        {
-            var res = _links.Find(x => x.ResourceURL == url && x.UserId == chatId);
-            return Task.FromResult(res);
-        }
+        await using var lck = await AsyncLock.Lock(semaphore);
+        var res = _links.Find(x => x.ResourceURL == url && x.UserId == chatId);
+        return res;
     }
 
     public async Task AddTagToLink(long linkId, string tag)
     {
-        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId) ?? throw new InvalidOperationException("adding tag to non-existence chat");
+        await using var lck = await AsyncLock.Lock(semaphore);
+        LinkTrackerData? ltd = _links.FirstOrDefault(x => x.Id == linkId) ?? throw new InvalidOperationException("adding tag to non-existence chat");
         if (ltd.Tags.Contains(tag))
         {
             throw new InvalidOperationException("adding same tag twice");
@@ -131,7 +128,8 @@ public class InMemoryRepository : IChatsRepository
 
     public async Task RemoveTagFromLink(long linkId, string tag)
     {
-        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId) ?? throw new InvalidOperationException("removing non-existence tag");
+        await using var lck = await AsyncLock.Lock(semaphore);
+        LinkTrackerData? ltd = _links.FirstOrDefault(x => x.Id == linkId) ?? throw new InvalidOperationException("removing non-existence tag");
         if (!ltd.Tags.Contains(tag))
         {
             throw new InvalidOperationException("removing non-existence tag");
@@ -141,7 +139,8 @@ public class InMemoryRepository : IChatsRepository
 
     public async Task<IEnumerable<string>> GetTagsFromLink(long linkId)
     {
-        LinkTrackerData? ltd = (await GetTrackingLinks()).FirstOrDefault(x => x.Id == linkId);
+        await using var lck = await AsyncLock.Lock(semaphore);
+        LinkTrackerData? ltd = _links.FirstOrDefault(x => x.Id == linkId);
         if (ltd == null)
         {
             return [];
