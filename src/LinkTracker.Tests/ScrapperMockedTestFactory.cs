@@ -32,9 +32,6 @@ public class ScrapperMockedTestFactory : WebApplicationFactory<Scrapper.TestEntr
                 settings.UseGRPC = false; // HTTP 2.0 not supported
                 settings.DatabaseType = DatabaseType;
                 settings.DatabaseConnectionString = ConnectionString;
-            });
-            services.Configure<Notifications>(settings =>
-            {
                 settings.NotificationType = NotificationType.API;
             });
         });
