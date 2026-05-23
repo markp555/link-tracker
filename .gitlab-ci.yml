@@ -36,6 +36,7 @@ module_test:
   - name: postgres:15
     alias: postgres
   - name: docker:dind
+    alias: docker
   variables:
     POSTGRES_DB: trackerdb
     POSTGRES_USER: gitlab
