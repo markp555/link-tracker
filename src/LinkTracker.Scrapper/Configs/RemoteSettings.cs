@@ -9,6 +9,12 @@ public enum DatabaseType
     SQL
 }
 
+public enum NotificationType
+{
+    API,
+    Kafka
+}
+
 public class RemoteSettings
 {
     [Required]
@@ -26,4 +32,6 @@ public class RemoteSettings
     public DatabaseType DatabaseType { get; set; } = DatabaseType.ORM;
 
     public string DatabaseConnectionString { get; set; } = string.Empty;
+
+    public NotificationType NotificationType { get; set; } = NotificationType.Kafka;
 }

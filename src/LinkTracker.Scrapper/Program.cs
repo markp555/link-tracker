@@ -30,9 +30,6 @@ builder.Services.AddOptions<LinkTracker.Scrapper.Configs.GitHub>()
 builder.Services.AddOptions<LinkTracker.Scrapper.Configs.RemoteSettings>()
     .Bind(builder.Configuration.GetSection("Remote"))
     .ValidateDataAnnotations();
-builder.Services.AddOptions<Notifications>()
-    .Bind(builder.Configuration.GetSection("Notifications"))
-    .ValidateDataAnnotations();
 builder.Services.AddOptions<Kafka>()
     .Bind(builder.Configuration.GetSection("Kafka"))
     .ValidateDataAnnotations();
@@ -71,7 +68,7 @@ builder.Services.AddSingleton<TelegramMessageSender>();
 builder.Services.AddSingleton<KafkaMessageSender>();
 builder.Services.AddSingleton<IMessageSender>(provider =>
 {
-    NotificationType type = provider.GetRequiredService<IOptions<Notifications>>().Value.NotificationType;
+    NotificationType type = provider.GetRequiredService<IOptions<RemoteSettings>>().Value.NotificationType;
     return type switch
     {
         NotificationType.API => provider.GetRequiredService<TelegramMessageSender>(),
