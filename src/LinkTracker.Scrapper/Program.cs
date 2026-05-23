@@ -30,6 +30,12 @@ builder.Services.AddOptions<LinkTracker.Scrapper.Configs.GitHub>()
 builder.Services.AddOptions<LinkTracker.Scrapper.Configs.RemoteSettings>()
     .Bind(builder.Configuration.GetSection("Remote"))
     .ValidateDataAnnotations();
+builder.Services.AddOptions<Notifications>()
+    .Bind(builder.Configuration.GetSection("Notifications"))
+    .ValidateDataAnnotations();
+builder.Services.AddOptions<Kafka>()
+    .Bind(builder.Configuration.GetSection("Kafka"))
+    .ValidateDataAnnotations();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -61,7 +67,16 @@ builder.Services.AddSingleton<IChatsRepository>(provider =>
 });
 builder.Services.AddSingleton<IScrapper, CommonScrapper>();
 
-builder.Services.AddSingleton<IMessageSender, TelegramMessageSender>();
+builder.Services.AddSingleton<TelegramMessageSender>();
+builder.Services.AddSingleton<IMessageSender>(provider =>
+{
+    NotificationType type = provider.GetRequiredService<IOptions<Notifications>>().Value.NotificationType;
+    return type switch
+    {
+        NotificationType.API => provider.GetRequiredService<TelegramMessageSender>(),
+        _ => provider.GetRequiredService<TelegramMessageSender>()
+    };
+})
 
 builder.Services.AddScoped<ScrapperLinksJob>();
 builder.Services.AddScoped<BatchScrapperJob>();
