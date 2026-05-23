@@ -14,7 +14,7 @@ public class KafkaMessageSender(IOptions<Configs.Kafka> options) : IMessageSende
         Acks = Acks.All,
         SaslUsername = options.Value.Username,
         SaslPassword = options.Value.Password,
-        SecurityProtocol = SecurityProtocol.SaslSsl,
+        SecurityProtocol = options.Value.UseAuthorization ? SecurityProtocol.SaslSsl : SecurityProtocol.Plaintext,
         SaslMechanism = SaslMechanism.ScramSha256
     }).Build();
     private long nextId = 0;

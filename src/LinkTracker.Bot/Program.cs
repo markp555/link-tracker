@@ -8,7 +8,6 @@ using Telegram.Bot;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LinkTracker.Bot;
-using LinkTracker.Scrapper.Configs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +22,10 @@ builder.Services.AddOptions<BotSettings>()
 // Add options for url of scrapper
 builder.Services.AddOptions<RemoteBotSettings>()
     .Bind(builder.Configuration.GetSection("Remote"))
+    .ValidateDataAnnotations();
+// Add options for kafka
+builder.Services.AddOptions<Kafka>()
+    .Bind(builder.Configuration.GetSection("Kafka"))
     .ValidateDataAnnotations();
 
 // Add telegram client
@@ -45,6 +48,9 @@ builder.Services.AddTransient<TrackDispatcher>();
 builder.Services.AddTransient<UnTrackDispatcher>();
 builder.Services.AddTransient<ListDispatcher>();
 builder.Services.AddHostedService<CommandRegistrationService>();
+
+// Add kafka
+builder.Services.AddHostedService<KafkaConsumerService>();
 
 // Add controllers
 builder.Services.AddControllers().AddJsonOptions(options =>

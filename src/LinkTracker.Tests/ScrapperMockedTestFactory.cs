@@ -33,6 +33,10 @@ public class ScrapperMockedTestFactory : WebApplicationFactory<Scrapper.TestEntr
                 settings.DatabaseType = DatabaseType;
                 settings.DatabaseConnectionString = ConnectionString;
             });
+            services.Configure<Notifications>(settings =>
+            {
+                settings.NotificationType = NotificationType.API;
+            });
         });
     }
 }

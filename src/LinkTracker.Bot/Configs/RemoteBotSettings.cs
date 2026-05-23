@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace LinkTracker.Scrapper.Configs;
+namespace LinkTracker.Bot.Configs;
 
 public class RemoteBotSettings
 {
@@ -8,4 +8,5 @@ public class RemoteBotSettings
     [Url]
     public string ScrapperEndpoint { get; set; } = "";
     public bool UseGRPC { get; set; } = false;
+    public bool UseKafka { get; set; } = false;
 }

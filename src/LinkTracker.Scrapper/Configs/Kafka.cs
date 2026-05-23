@@ -8,4 +8,5 @@ public class Kafka
     public string Username { get; set; } = "";
     public string Password { get; set; } = "";
     public bool UseAuthorization { get; set; } = false;
+    public bool CreateTopic { get; set; } = true;
 }

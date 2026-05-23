@@ -68,15 +68,17 @@ builder.Services.AddSingleton<IChatsRepository>(provider =>
 builder.Services.AddSingleton<IScrapper, CommonScrapper>();
 
 builder.Services.AddSingleton<TelegramMessageSender>();
+builder.Services.AddSingleton<KafkaMessageSender>();
 builder.Services.AddSingleton<IMessageSender>(provider =>
 {
     NotificationType type = provider.GetRequiredService<IOptions<Notifications>>().Value.NotificationType;
     return type switch
     {
         NotificationType.API => provider.GetRequiredService<TelegramMessageSender>(),
-        _ => provider.GetRequiredService<TelegramMessageSender>()
+        NotificationType.Kafka => provider.GetRequiredService<KafkaMessageSender>(),
+        _ => provider.GetRequiredService<KafkaMessageSender>()
     };
-})
+});
 
 builder.Services.AddScoped<ScrapperLinksJob>();
 builder.Services.AddScoped<BatchScrapperJob>();
@@ -154,6 +156,9 @@ builder.Services.AddTransient<IBotApi>(sp =>
         return sp.GetRequiredService<BotApiClient>();
     }
 });
+
+// add kafka service
+builder.Services.AddHostedService<KafkaTopicCreater>();
 
 var app = builder.Build();
 

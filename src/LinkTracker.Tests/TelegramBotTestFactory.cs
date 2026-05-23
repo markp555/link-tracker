@@ -1,6 +1,5 @@
 ﻿using LinkTracker.Bot.Configs;
 using LinkTracker.Bot.Services;
-using LinkTracker.Scrapper.Configs;
 using LinkTracker.UnitTests;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -39,6 +38,7 @@ internal class TelegramBotTestFactory : WebApplicationFactory<Bot.TestEntryPoint
             {
                 settings.ScrapperEndpoint = "http://localhost/";
                 settings.UseGRPC = false; // HTTP 2.0 not supported
+                settings.UseKafka = false;
             });
         });
     }
