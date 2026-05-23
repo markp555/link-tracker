@@ -35,9 +35,13 @@ module_test:
   services:
   - name: postgres:15
     alias: postgres
+  - name: docker:dind
   variables:
     POSTGRES_DB: trackerdb
     POSTGRES_USER: gitlab
     POSTGRES_PASSWORD: gitlab_password
-    LOCAL_CI_POSTGRES_CONNECTION_STRING: Host=postgres;Port=5432;Database=trackerdb;Username=gitlab;Password=gitlab_password
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_TLS_VERIFY: 0
+    # LOCAL_CI_POSTGRES_CONNECTION_STRING: Host=postgres;Port=5432;Database=trackerdb;Username=gitlab;Password=gitlab_password
   
