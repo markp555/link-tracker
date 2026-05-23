@@ -5,6 +5,9 @@ stages:
   - validate
   - test
 
+variables:
+  GITLAB_DOCKER_PROXY: gitlab.education.tbank.ru:443/backend-academy-dotnet-2025/lecture-materials/dependency_proxy/containers
+
 build:
   stage: build
   script:
