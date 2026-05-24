@@ -24,7 +24,11 @@ public class KafkaTopicCreater(IOptions<Kafka> options, ILogger<KafkaTopicCreate
         {
             Name = options.Value.Topic,
             NumPartitions = 3,
+#if DEBUG // Disable replication factor in debug mode when only one instance of kafka is running
+            ReplicationFactor = 1
+#else
             ReplicationFactor = 3
+#endif
         };
         try
         {

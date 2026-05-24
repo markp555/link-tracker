@@ -1,9 +1,16 @@
 
 using Confluent.Kafka;
 using Microsoft.Extensions.Options;
+using System.Text;
 using System.Text.Json;
 
 namespace LinkTracker.Scrapper.Services;
+
+public class JsonSerializer<T> : ISerializer<T>
+{
+    public byte[] Serialize(T data, SerializationContext context) =>
+        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(data));
+}
 
 public class KafkaMessageSender(IOptions<Configs.Kafka> options) : IMessageSender
 {
@@ -16,7 +23,7 @@ public class KafkaMessageSender(IOptions<Configs.Kafka> options) : IMessageSende
         SaslPassword = options.Value.Password,
         SecurityProtocol = options.Value.UseAuthorization ? SecurityProtocol.SaslSsl : SecurityProtocol.Plaintext,
         SaslMechanism = SaslMechanism.ScramSha256
-    }).Build();
+    }).SetValueSerializer(new JsonSerializer<Dto.LinkUpdateDto>()).Build();
     private long nextId = 0;
 
     public async Task SendUpdateToUser(long userId, string url, string message, CancellationToken cancellationToken = default)

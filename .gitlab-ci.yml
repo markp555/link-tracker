@@ -38,12 +38,6 @@ module_test:
   services:
   - name: postgres:15
     alias: postgres
-  - name: docker:29.0.1-dind
-    alias: docker
-
-  before_script:
-    - apt-get update && apt-get install -y docker.io
-
   variables:
     POSTGRES_DB: trackerdb
     POSTGRES_USER: gitlab
@@ -55,5 +49,5 @@ module_test:
     TESTCONTAINERS_HOST_OVERRIDE: docker
     TESTCONTAINERS_RYUK_DISABLED: "true"
 
-    # LOCAL_CI_POSTGRES_CONNECTION_STRING: Host=postgres;Port=5432;Database=trackerdb;Username=gitlab;Password=gitlab_password
+    LOCAL_CI_POSTGRES_CONNECTION_STRING: Host=postgres;Port=5432;Database=trackerdb;Username=gitlab;Password=gitlab_password
   

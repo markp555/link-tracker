@@ -1,9 +1,27 @@
 using Confluent.Kafka;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Options;
-using Telegram.Bot.Requests.Abstractions;
+using System.Text;
+using System.Text.Json;
 
 namespace LinkTracker.Bot.Services;
+
+public class JsonDeserializer<T> : IDeserializer<T>
+{
+    public T? DeserializeSafe(ReadOnlySpan<byte> data, bool isNull, SerializationContext context)
+    {
+        if (isNull)
+        {
+            return default;
+        }
+        string json = Encoding.UTF8.GetString(data);
+        return JsonSerializer.Deserialize<T>(json);
+    }
+
+    public T Deserialize(ReadOnlySpan<byte> data, bool isNull, SerializationContext context)
+    {
+        return DeserializeSafe(data, isNull, context) ?? throw new ApplicationException("Invalid kafka message");
+    }
+}
 
 public class KafkaConsumerService(ILogger<KafkaConsumerService> logger, IOptions<Configs.Kafka> kafka, IOptions<Configs.RemoteBotSettings> remoteSettings, ITelegramBot bot) : BackgroundService
 {
@@ -26,7 +44,7 @@ public class KafkaConsumerService(ILogger<KafkaConsumerService> logger, IOptions
             SaslMechanism = SaslMechanism.ScramSha256
         };
         logger.LogDebug("Initializing kafka");
-        using var consumer = new ConsumerBuilder<long, Dto.LinkUpdateDto>(config).Build();
+        using var consumer = new ConsumerBuilder<long, Dto.LinkUpdateDto>(config).SetValueDeserializer(new JsonDeserializer<Dto.LinkUpdateDto>()).Build();
         consumer.Subscribe(kafka.Value.Topic);
         logger.LogDebug("Starting listening for messages from kafka");
         try
