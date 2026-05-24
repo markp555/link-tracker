@@ -29,6 +29,12 @@ internal class TelegramClientMockedTestFactory : WebApplicationFactory<Bot.TestE
             }
 
             services.AddSingleton(_ => ClientMock);
+
+            services.Configure<RemoteBotSettings>(settings =>
+            {
+                // disable not supported kafka
+                settings.UseKafka = false;
+            });
         });
     }
 }
