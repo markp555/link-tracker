@@ -8,6 +8,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - app-network
 
   kafka-1:
     image: confluentinc/cp-kafka:7.5.0
@@ -15,6 +17,9 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
+    networks:
+      - app-network
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -30,6 +35,9 @@ services:
       - zookeeper
     ports:
       - "9093:9093"
+      - "29093:29093"
+    networks:
+      - app-network
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -45,6 +53,9 @@ services:
       - zookeeper
     ports:
       - "9094:9094"
+      - "29094:29094"
+    networks:
+      - app-network
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
