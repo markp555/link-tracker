@@ -148,7 +148,7 @@ services:
 volumes:
   pgdata:
   nuget_cache:
-  valkey-data:
+  valkey_data:
 
 networks:
   app-network:
