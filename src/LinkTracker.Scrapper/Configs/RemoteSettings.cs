@@ -34,4 +34,8 @@ public class RemoteSettings
     public string DatabaseConnectionString { get; set; } = string.Empty;
 
     public NotificationType NotificationType { get; set; } = NotificationType.Kafka;
+
+    public bool UseCache { get; set; } = false;
+
+    public int CacheTTL { get; set; } = 10;
 }

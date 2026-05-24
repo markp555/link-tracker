@@ -71,6 +71,22 @@ services:
       retries: 5
     networks:
       - app-network
+  valkey-db:
+    image: valkey/valkey:latest
+    container_name: valkey_instance
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    command: ["valkey-server", "--appendonly", "yes"]
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   scrapper:
     image: mcr.microsoft.com/dotnet/sdk:9.0
@@ -85,10 +101,14 @@ services:
       - Remote__BotEndpoint=http://bot:5205/
       - Remote__NotificationType=Kafka
       - Kafka__Servers=kafka-1:29092,kafka-2:29093,kafka-3:29094
+      - ConnectionStrings__Valkey=valkey-db:6379
+      - Remote__UseCache=true
       - ASPNETCORE_HTTP_PORTS=
       - ASPNETCORE_URLS=
     depends_on:
       db:
+        condition: service_healthy
+      valkey-db:
         condition: service_healthy
     networks:
       - app-network
@@ -128,6 +148,7 @@ services:
 volumes:
   pgdata:
   nuget_cache:
+  valkey-data:
 
 networks:
   app-network:

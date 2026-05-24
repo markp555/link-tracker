@@ -14,6 +14,7 @@ using LinkTracker.ORMChatsRepository;
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.SQLChatsRepository;
 using LinkTracker.Scrapper.Migrations;
+using Microsoft.Extensions.Caching.Distributed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +41,12 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Valkey");
+    options.InstanceName = "Scrapper_";
+});
+
 builder.Services.AddHttpClient<BotApiClient>()
     .ConfigureHttpClient((provider, c) =>
     {
@@ -54,13 +61,15 @@ builder.Services.AddSingleton<ORMChatsRepository>();
 builder.Services.AddSingleton<SQLChatsRepository>();
 builder.Services.AddSingleton<IChatsRepository>(provider =>
 {
-    DatabaseType type = provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseType;
-    return type switch
+    RemoteSettings settings = provider.GetRequiredService<IOptions<RemoteSettings>>().Value;
+    DatabaseType type = settings.DatabaseType;
+    IChatsRepository source = type switch
     {
         DatabaseType.ORM => provider.GetRequiredService<ORMChatsRepository>(),
         DatabaseType.SQL => provider.GetRequiredService<SQLChatsRepository>(),
         _ => provider.GetRequiredService<InMemoryRepository>()
     };
+    return settings.UseCache ? source : source;
 });
 builder.Services.AddSingleton<IScrapper, CommonScrapper>();
 
