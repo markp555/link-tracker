@@ -186,7 +186,7 @@ public class ScrapperController(IChatsRepository repository, ILogger<ScrapperCon
             return UnprocessableEntity(error);
         }
 
-        long id = await repository.GetNextFreeId();
+        long id = IdempotencySource.NextId();
         LinkTrackerData res = new()
         {
             Id = id,

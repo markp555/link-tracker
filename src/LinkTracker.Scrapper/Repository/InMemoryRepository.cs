@@ -8,7 +8,6 @@ public class InMemoryRepository : IChatsRepository
 {
     private HashSet<long> _chats = [];
     private List<LinkTrackerData> _links = [];
-    private long _id = 0;
     private SemaphoreSlim semaphore = new(1, 1);
 
     private class AsyncLock : IAsyncDisposable
@@ -58,11 +57,6 @@ public class InMemoryRepository : IChatsRepository
         await using var lck = await AsyncLock.Lock(semaphore);
         List<long> copy = new(_chats);
         return copy;
-    }
-
-    public Task<long> GetNextFreeId()
-    {
-        return Task.FromResult(Interlocked.Increment(ref _id));
     }
 
     public async Task<IReadOnlyList<LinkTrackerData>> GetTrackingLinks(long? chatId = null)

@@ -65,7 +65,7 @@ public class ScrapperLinksJob(
                         // If sending update fail, then update will not be written to database and attempt to resend it will occur
                         await botApi.SendUpdateAsync(new Dto.LinkUpdateDto()
                         {
-                            Id = await repository.GetNextFreeId(),
+                            Id = IdempotencySource.NextId(),
                             Description = result.LastUpdateDescription,
                             TgChatIds = [link.UserId],
                             Url = link.ResourceURL
@@ -83,7 +83,7 @@ public class ScrapperLinksJob(
 
                 async Task NotifyUserSubJob(CancellationToken cancellationToken)
                 {
-                    long id = await repository.GetNextFreeId();
+                    long id = IdempotencySource.NextId();
                     await botApi.SendUpdateAsync(new Dto.LinkUpdateDto()
                     {
                         Id = id,

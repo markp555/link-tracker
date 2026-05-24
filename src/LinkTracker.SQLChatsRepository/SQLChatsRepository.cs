@@ -178,33 +178,6 @@ SELECT tgid FROM chats;";
         }
         return res;
     }
-
-    private readonly SemaphoreSlim semaphore = new(1);
-    public async Task<long> GetNextFreeId()
-    {
-        await semaphore.WaitAsync();
-        try
-        {
-            var sql1 = "SELECT value FROM config WHERE name = 'freeid';";
-            long old;
-            await using (var cmd = dataSource.CreateCommand(sql1))
-            {
-                old = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-            }
-            var sql2 = "UPDATE config SET value = @value WHERE name = 'freeid';";
-            await using (var cmd = dataSource.CreateCommand(sql2))
-            {
-                cmd.Parameters.AddWithValue("value", old + 1);
-                await cmd.ExecuteNonQueryAsync();
-            }
-            return old;
-        }
-        finally
-        {
-            semaphore.Release();
-        }
-    }
-
     public async Task<IReadOnlyList<string>> GetTagsFromLink(long linkId)
     {
         return await RecieveLinkList(linkId, LinkLists.TagList);

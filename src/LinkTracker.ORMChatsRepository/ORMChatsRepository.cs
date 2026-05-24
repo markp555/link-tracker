@@ -80,23 +80,6 @@ public class ORMChatsRepository : IChatsRepository
         return await conn.Chats.Select(x => x.TgID).ToArrayAsync();
     }
 
-    private readonly SemaphoreSlim semaphore = new(1);
-    public async Task<long> GetNextFreeId()
-    {
-        await semaphore.WaitAsync();
-        try
-        {
-            await using var conn = Connection;
-            long old = await conn.Configuration.Where(x => x.Name == "freeid").Select(x => x.Value).FirstAsync();
-            await conn.Configuration.Where(x => x.Name == "freeid").Set(s => s.Value, s => s.Value + 1).UpdateAsync();
-            return old;
-        }
-        finally
-        {
-            semaphore.Release();
-        }
-    }
-
     public async Task<IReadOnlyList<string>> GetTagsFromLink(long linkId)
     {
         await using var conn = Connection;

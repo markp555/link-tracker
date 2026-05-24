@@ -57,7 +57,7 @@ public class ScrapperGRPCService(IChatsRepository repository, ILogger<ScrapperGR
             throw new RpcException(new Status(StatusCode.Unimplemented, "Link not supported"));
         }
 
-        long id = await repository.GetNextFreeId();
+        long id = IdempotencySource.NextId();
         LinkTrackerData res = new()
         {
             Id = id,
