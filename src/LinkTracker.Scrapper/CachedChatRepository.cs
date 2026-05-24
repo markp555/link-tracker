@@ -1,9 +1,18 @@
+using LinkTracker.Scrapper.Services;
 using LinkTracker.ScrapperBase.Models;
 using LinkTracker.ScrapperBase.Repository;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace LinkTracker.Scrapper;
 
-public class CachedChatRepository(IChatsRepository repository) : IChatsRepository
+/// <summary>
+/// Repository wrapping that caches requests and invalidates cache
+/// </summary>
+/// <param name="repository">underground storage repository</param>
+/// <param name="cache">distributed cache to use</param>
+/// <param name="TTL">time in minutes to cache entry live</param>
+public class CachedChatRepository(IChatsRepository repository, IDistributedCache cache, int TTL) : IChatsRepository
 {
     public Task AddLinkUpdate(string url, DateTime created, string content)
     {
@@ -15,9 +24,10 @@ public class CachedChatRepository(IChatsRepository repository) : IChatsRepositor
         return repository.AddTagToLink(linkId, tag);
     }
 
-    public Task AddTrackingLink(LinkTrackerData link)
+    public async Task AddTrackingLink(LinkTrackerData link)
     {
-        return repository.AddTrackingLink(link);
+        await cache.RemoveAsync(link.UserId.ToString());
+        await repository.AddTrackingLink(link);
     }
 
     public Task<bool> ChatExists(long chatId)
@@ -60,9 +70,29 @@ public class CachedChatRepository(IChatsRepository repository) : IChatsRepositor
         return repository.GetTagsFromLink(linkId);
     }
 
-    public Task<IReadOnlyList<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
+    public async Task<IReadOnlyList<LinkTrackerData>> GetTrackingLinks(long? chatId = null)
     {
-        return repository.GetTrackingLinks(chatId);
+        if (chatId != null)
+        {
+            string? s = await cache.GetStringAsync(chatId.ToString() ?? "");
+            if (s != null)
+            {
+                var res = JsonSerializer.Deserialize<List<LinkTrackerData>>(s);
+                if (res != null)
+                {
+                    return res;
+                }
+            }
+        }
+        var links = await repository.GetTrackingLinks(chatId);
+        if (chatId != null)
+        {
+            await cache.SetStringAsync(chatId.ToString() ?? "", JsonSerializer.Serialize(links), new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(TTL)
+            });
+        }
+        return links;
     }
 
     public Task RemoveTagFromLink(long linkId, string tag)
@@ -70,9 +100,10 @@ public class CachedChatRepository(IChatsRepository repository) : IChatsRepositor
         return repository.RemoveTagFromLink(linkId, tag);
     }
 
-    public Task RemoveTrackingLink(LinkTrackerData link)
+    public async Task RemoveTrackingLink(LinkTrackerData link)
     {
-        return repository.RemoveTrackingLink(link);
+        await cache.RemoveAsync(link.UserId.ToString());
+        await repository.RemoveTrackingLink(link);
     }
 
     public Task<bool> TryCreateChat(long chatId)
@@ -85,8 +116,9 @@ public class CachedChatRepository(IChatsRepository repository) : IChatsRepositor
         return repository.TryRemoveChat(chatId);
     }
 
-    public Task UpdateTrackingLink(LinkTrackerData link)
+    public async Task UpdateTrackingLink(LinkTrackerData link)
     {
-        return repository.UpdateTrackingLink(link);
+        await cache.RemoveAsync(link.UserId.ToString());
+        await repository.UpdateTrackingLink(link);
     }
 }

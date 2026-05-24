@@ -69,7 +69,7 @@ builder.Services.AddSingleton<IChatsRepository>(provider =>
         DatabaseType.SQL => provider.GetRequiredService<SQLChatsRepository>(),
         _ => provider.GetRequiredService<InMemoryRepository>()
     };
-    return settings.UseCache ? source : source;
+    return settings.UseCache ? new CachedChatRepository(source, provider.GetRequiredService<IDistributedCache>(), settings.CacheTTL) : source;
 });
 builder.Services.AddSingleton<IScrapper, CommonScrapper>();
 
