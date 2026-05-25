@@ -63,8 +63,9 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddHttpClient<ScrapperClient>().ConfigureHttpClient((provider, c) =>
     {
         // configure client here
-        c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<RemoteBotSettings>>().Value.ScrapperEndpoint);
-        c.Timeout = TimeSpan.FromSeconds(1);
+        var settings = provider.GetRequiredService<IOptions<RemoteBotSettings>>().Value;
+        c.BaseAddress = new Uri(settings.ScrapperEndpoint);
+        c.Timeout = settings.ScrapperTimeout;
     });
 
 // add grpc

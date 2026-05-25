@@ -9,4 +9,5 @@ public class RemoteBotSettings
     public string ScrapperEndpoint { get; set; } = "";
     public bool UseGRPC { get; set; } = false;
     public bool UseKafka { get; set; } = false;
+    public TimeSpan ScrapperTimeout { get; set; } = TimeSpan.FromSeconds(1);
 }
