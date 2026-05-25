@@ -17,6 +17,7 @@ using LinkTracker.Scrapper.Migrations;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +37,9 @@ builder.Services.AddOptions<LinkTracker.Scrapper.Configs.RemoteSettings>()
 builder.Services.AddOptions<Kafka>()
     .Bind(builder.Configuration.GetSection("Kafka"))
     .ValidateDataAnnotations();
+builder.Services.AddOptions<PollyOptions>()
+    .Bind(builder.Configuration.GetSection("Polly"))
+    .ValidateDataAnnotations();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -49,13 +53,17 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "Scrapper_";
 });
 
+// add polly policy
+builder.Services.AddSingleton<PollyPolicyBuilder>();
+
 builder.Services.AddHttpClient<BotApiClient>()
     .ConfigureHttpClient((provider, c) =>
     {
         // configure client here
         c.Timeout = TimeSpan.FromSeconds(5);
         c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<RemoteSettings>>().Value.BotEndpoint);
-    });
+    })
+    .AddPolicyHandler((provider, _) => provider.GetRequiredService<PollyPolicyBuilder>().CreatePolicy());
 
 builder.Services.AddSingleton(provider => new DatabaseSettings { ConnectionString = provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseConnectionString });
 builder.Services.AddSingleton<InMemoryRepository>();
@@ -117,7 +125,8 @@ builder.Services.AddHttpClient<StackoverflowScrapper>()
         var settings = provider.GetRequiredService<IOptions<RemoteSettings>>().Value;
         c.BaseAddress = settings.StackoverflowEndpoint;
         c.Timeout = settings.StackoverflowTimeout;
-    });
+    })
+    .AddPolicyHandler((provider, _) => provider.GetRequiredService<PollyPolicyBuilder>().CreatePolicy());
 // add github scrapper
 builder.Services.AddHttpClient<GithubScrapper>()
     .ConfigureHttpClient((provider, c) =>
@@ -126,7 +135,8 @@ builder.Services.AddHttpClient<GithubScrapper>()
         var settings = provider.GetRequiredService<IOptions<RemoteSettings>>().Value;
         c.BaseAddress = settings.GithubEndpoint;
         c.Timeout = settings.GithubTimeout;
-    });
+    })
+    .AddPolicyHandler((provider, _) => provider.GetRequiredService<PollyPolicyBuilder>().CreatePolicy());
 
 // add batch scrapper
 builder.Services.AddSingleton<IBatchScrapper>(provider =>
