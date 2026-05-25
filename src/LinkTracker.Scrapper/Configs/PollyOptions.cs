@@ -1,4 +1,4 @@
-namespace LinkTracker.Scrapper;
+namespace LinkTracker.Scrapper.Configs;
 public class PollyOptions
 {
     // Retry

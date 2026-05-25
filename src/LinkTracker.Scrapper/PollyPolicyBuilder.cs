@@ -1,3 +1,4 @@
+using LinkTracker.Scrapper.Configs;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Extensions.Http;
