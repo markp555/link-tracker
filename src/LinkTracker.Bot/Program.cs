@@ -108,7 +108,7 @@ builder.Services.AddRateLimiter(config =>
         opts.PermitLimit = 100;
         opts.Window = TimeSpan.FromSeconds(3);
         opts.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        opts.QueueLimit = 3;
+        opts.QueueLimit = 0;
     });
 });
 
