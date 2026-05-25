@@ -10,6 +10,7 @@ using System.Text.Json.Serialization;
 using LinkTracker.Bot;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,8 @@ builder.Services.AddOptions<RemoteBotSettings>()
 builder.Services.AddOptions<Kafka>()
     .Bind(builder.Configuration.GetSection("Kafka"))
     .ValidateDataAnnotations();
+builder.Services.AddOptions<PollyOptions>()
+    .Bind(builder.Configuration.GetSection("Polly"));
 
 // Add telegram client
 builder.Services.AddSingleton<ITelegramBotClient, TelegramBotClient>(factory =>
@@ -61,6 +64,9 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
+// add polly
+builder.Services.AddSingleton<PollyPolicyBuilder>();
+
 // Add scrapper http client
 builder.Services.AddHttpClient<ScrapperClient>().ConfigureHttpClient((provider, c) =>
     {
@@ -68,7 +74,8 @@ builder.Services.AddHttpClient<ScrapperClient>().ConfigureHttpClient((provider, 
         var settings = provider.GetRequiredService<IOptions<RemoteBotSettings>>().Value;
         c.BaseAddress = new Uri(settings.ScrapperEndpoint);
         c.Timeout = settings.ScrapperTimeout;
-    });
+    })
+    .AddPolicyHandler((provider, _) => provider.GetRequiredService<PollyPolicyBuilder>().CreatePolicy());
 
 // add grpc
 builder.Services.AddGrpc();
