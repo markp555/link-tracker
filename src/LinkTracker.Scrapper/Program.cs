@@ -15,6 +15,8 @@ using LinkTracker.ScrapperBase.Models;
 using LinkTracker.SQLChatsRepository;
 using LinkTracker.Scrapper.Migrations;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -166,6 +168,19 @@ builder.Services.AddTransient<IBotApi>(sp =>
 // add kafka service
 builder.Services.AddHostedService<KafkaTopicCreater>();
 
+// add rate limiter
+builder.Services.AddRateLimiter(config =>
+{
+    config.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    config.AddFixedWindowLimiter("default", opts =>
+    {
+        opts.PermitLimit = 100;
+        opts.Window = TimeSpan.FromSeconds(3);
+        opts.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opts.QueueLimit = 3;
+    });
+});
+
 var app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
@@ -182,8 +197,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseRateLimiter();
 app.UseHttpsRedirection();
-app.MapControllers();
+app.MapControllers().RequireRateLimiting("default");
 app.MapGrpcService<ScrapperGRPCService>();
 
 // apply migrations

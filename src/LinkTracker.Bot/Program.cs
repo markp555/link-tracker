@@ -8,6 +8,8 @@ using Telegram.Bot;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LinkTracker.Bot;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,6 +93,18 @@ builder.Services.AddTransient<IScrapperClient>(sp =>
     }
 });
 
+builder.Services.AddRateLimiter(config =>
+{
+    config.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    config.AddFixedWindowLimiter("default", opts =>
+    {
+        opts.PermitLimit = 100;
+        opts.Window = TimeSpan.FromSeconds(3);
+        opts.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opts.QueueLimit = 3;
+    });
+});
+
 
 var app = builder.Build();
 
@@ -100,8 +114,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseRateLimiter();
 app.UseHttpsRedirection();
-app.MapControllers();
+app.MapControllers().RequireRateLimiting("default");
 
 var summaries = new[]
 {
