@@ -38,4 +38,10 @@ public class RemoteSettings
     public bool UseCache { get; set; } = false;
 
     public int CacheTTL { get; set; } = 10;
+
+    public Uri GithubEndpoint { get; set; } = new Uri("https://api.github.com/");
+    public Uri StackoverflowEndpoint { get; set; } = new Uri("https://api.stackexchange.com/2.3/");
+
+    public TimeSpan GithubTimeout { get; set; } = TimeSpan.FromSeconds(10);
+    public TimeSpan StackoverflowTimeout { get; set; } = TimeSpan.FromSeconds(10);
 }

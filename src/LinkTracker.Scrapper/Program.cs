@@ -54,7 +54,7 @@ builder.Services.AddHttpClient<BotApiClient>()
     {
         // configure client here
         c.Timeout = TimeSpan.FromSeconds(5);
-        c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<LinkTracker.Scrapper.Configs.RemoteSettings>>().Value.BotEndpoint);
+        c.BaseAddress = new Uri(provider.GetRequiredService<IOptions<RemoteSettings>>().Value.BotEndpoint);
     });
 
 builder.Services.AddSingleton(provider => new DatabaseSettings { ConnectionString = provider.GetRequiredService<IOptions<RemoteSettings>>().Value.DatabaseConnectionString });
@@ -111,19 +111,21 @@ builder.Services.AddQuartzHostedService();
 
 // add stackoverflow scrapper
 builder.Services.AddHttpClient<StackoverflowScrapper>()
-    .ConfigureHttpClient(c =>
+    .ConfigureHttpClient((provider, c) =>
     {
         // configure client here
-        c.BaseAddress = new Uri("https://api.stackexchange.com/2.3/");
-        c.Timeout = TimeSpan.FromSeconds(10);
+        var settings = provider.GetRequiredService<IOptions<RemoteSettings>>().Value;
+        c.BaseAddress = settings.StackoverflowEndpoint;
+        c.Timeout = settings.StackoverflowTimeout;
     });
 // add github scrapper
 builder.Services.AddHttpClient<GithubScrapper>()
-    .ConfigureHttpClient(c =>
+    .ConfigureHttpClient((provider, c) =>
     {
         // configure client here
-        c.BaseAddress = new Uri("https://api.github.com/");
-        c.Timeout = TimeSpan.FromSeconds(10);
+        var settings = provider.GetRequiredService<IOptions<RemoteSettings>>().Value;
+        c.BaseAddress = settings.GithubEndpoint;
+        c.Timeout = settings.GithubTimeout;
     });
 
 // add batch scrapper
