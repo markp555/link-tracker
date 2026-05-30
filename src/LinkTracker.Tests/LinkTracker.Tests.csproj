@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LinkTracker.AIAgentService\LinkTracker.AIAgentService.csproj" />
     <ProjectReference Include="..\LinkTracker.Bot\LinkTracker.Bot.csproj" />
     <ProjectReference Include="..\LinkTracker.Scrapper\LinkTracker.Scrapper.csproj" />
     <ProjectReference Include="..\LinkTracker.UnitTests\LinkTracker.UnitTests.csproj" />
