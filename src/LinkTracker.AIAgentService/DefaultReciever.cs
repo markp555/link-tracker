@@ -12,6 +12,13 @@ internal class DefaultReciever(IMessageProcessor processor, IMessageSender sende
     public async ValueTask HandleMessage(LinkUpdateDto message)
     {
         logger.LogInformation("Processing update {@Update}", message);
+        if (!await processor.Filter(message))
+        {
+            logger.LogDebug("""
+                Message "{content}" filtered out
+                """, message.Description);
+            return;
+        }
         var processed = await processor.Process(message);
         logger.LogDebug("""
             Summarized "{old}" -> "{new}"

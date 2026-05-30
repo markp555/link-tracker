@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using LinkTracker.AIAgentService;
 
 var builder = Host.CreateApplicationBuilder(args);
+builder.Services.Configure<AIAgentSettings>(builder.Configuration.GetSection("ai-agnet"));
 builder.Services.AddSingleton<IMessageReciever, DefaultReciever>();
 builder.Services.AddSingleton<IMessageSender, KafkaMessageSender>();
 builder.Services.AddSingleton<IMessageProcessor,AIProcessor>();
