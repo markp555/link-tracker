@@ -155,6 +155,24 @@ services:
       scrapper:
         condition: service_started
     restart: unless-stopped
+  ai-agent:
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    working_dir: /src/LinkTracker.AIAgentService/
+    env_file: .env
+    command: dotnet run
+    container_name: ai_agnet_service
+    user: root
+    environment:
+      - Kafka__Servers=kafka-1:29092,kafka-2:29093,kafka-3:29094
+    networks:
+      - app-network
+    volumes:
+      - nuget_cache:/home/root/.nuget
+      - ./src:/src
+    depends_on:
+      bot:
+        condition: service_started
+    restart: unless-stopped
 
 volumes:
   pgdata:
